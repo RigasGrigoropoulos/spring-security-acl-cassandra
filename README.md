@@ -1,5 +1,5 @@
 ## spring-security-acl-cassandra
-spring-security-acl-cassandra provides AclService and MutableAclService implementations that enable using [Spring Security][] ACLs with an [Apache Cassandra][] database.
+spring-security-acl-cassandra provides AclService and MutableAclService implementations that enable usage of [Spring Security][] ACLs with an [Apache Cassandra][] database.
 Communication with the Cassandra cluster is implemented using the [Hector][] java client.
 
 ## Prerequisites
