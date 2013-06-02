@@ -19,6 +19,7 @@
 	<artifactId>spring-security-acl-cassandra</artifactId>
 	<name>spring-security-acl-cassandra</name>
 	<version>0.0.1-SNAPSHOT</version>
+	<packaging>bundle</packaging>
 	<url>https://github.com/RigasGrigoropoulos/spring-security-acl-cassandra</url>
 	
 	<licenses>
@@ -59,6 +60,17 @@
 					<debug>true</debug>
 					<optimize>true</optimize>
 					<encoding>UTF-8</encoding>
+				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.felix</groupId>
+				<artifactId>maven-bundle-plugin</artifactId>
+				<version>2.3.7</version>
+				<extensions>true</extensions>
+				<configuration>
+					<instructions>
+						<Include-Resource>LICENSE, NOTICE</Include-Resource>
+					</instructions>
 				</configuration>
 			</plugin>
 		</plugins>
