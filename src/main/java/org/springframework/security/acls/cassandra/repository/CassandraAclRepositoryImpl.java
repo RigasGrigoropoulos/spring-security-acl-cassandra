@@ -71,6 +71,9 @@ public class CassandraAclRepositoryImpl implements CassandraAclRepository {
 	}
 
 	public Map<AclObjectIdentity, List<AclEntry>> findAclEntries(List<String> objectIdsToLookup, List<String> sids) {
+		if (LOG.isDebugEnabled()) {
+			LOG.debug("BEGIN findAclEntries: objectIdentities: " + objectIdsToLookup + ", sids: " + sids);
+		}
 		Map<AclObjectIdentity, List<AclEntry>> resultMap = new HashMap<AclObjectIdentity, List<AclEntry>>();
 		MappedColumnFamilyResult<String, String, Entry<AclObjectIdentity, List<AclEntry>>> result;
 
@@ -99,14 +102,26 @@ public class CassandraAclRepositoryImpl implements CassandraAclRepository {
 				}
 			} while (!done);
 		}
+		
+		if (LOG.isDebugEnabled()) {
+			LOG.debug("END findAclEntries: objectIdentities: " + resultMap.keySet() + ", aclEntries: " + resultMap.values());
+		}
 		return resultMap;
 	}
 
 	public AclObjectIdentity findAclObjectIdentity(String objectId) {
+		if (LOG.isDebugEnabled()) {
+			LOG.debug("BEGIN findAclObjectIdentity: objectIdentity: " + objectId);
+		}
+		AclObjectIdentity objectIdentity;
 		Entry<AclObjectIdentity, List<AclEntry>> result = template.queryColumns(objectId, new ArrayList<String>(
 				aoi_column_names), new MyColumnFamilyRowMapper());
-		return result.getKey();
-
+		objectIdentity = result.getKey();
+		
+		if (LOG.isDebugEnabled()) {
+			LOG.debug("END findAclObjectIdentity: objectIdentity: " + objectIdentity);
+		}
+		return objectIdentity;
 	}
 
 	private AclEntry getOrCreateAclEntry(List<AclEntry> aeList, String sid, String aclObjectId) {

@@ -88,6 +88,9 @@ public class CassandraAclService implements AclService {
 	}
 
 	public Map<ObjectIdentity, Acl> readAclsById(List<ObjectIdentity> objects, List<Sid> sids) throws NotFoundException {
+		if (LOG.isDebugEnabled()) {
+			LOG.debug("BEGIN readAclById: objectIdentities: " + objects + ", sids: " + sids);
+		}
 		Assert.notEmpty(objects, "Objects to lookup required");
 
 		// contains FULLY loaded Acl objects
@@ -131,6 +134,9 @@ public class CassandraAclService implements AclService {
 			}
 		}
 
+		if (LOG.isDebugEnabled()) {
+			LOG.debug("END readAclById: acls: " + result.values());
+		}
 		return result;
 	}
 
@@ -186,8 +192,7 @@ public class CassandraAclService implements AclService {
 		try {
 			fieldAces.set(acl, aces);
 		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			LOG.error("Could not set AccessControlEntries in the ACL", e);
 		} 
 		return acl;
 	}
