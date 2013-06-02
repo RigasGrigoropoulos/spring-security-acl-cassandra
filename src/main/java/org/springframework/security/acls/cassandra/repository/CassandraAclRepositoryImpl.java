@@ -56,15 +56,18 @@ public class CassandraAclRepositoryImpl implements CassandraAclRepository {
 	private static final String auditSuccess = "auditSuccess";
 	private static final String auditFailure = "auditFailure";
 
-	private static final List<String> aoi_column_names = Arrays.asList(objectClass, parentObjectId, ownerSid, ownerIsPrincipal, entriesInheriting);
-	private static final List<String> ae_column_names = Arrays.asList(aceOrder, sidIsPrincipal, mask, granting, auditSuccess, auditFailure);
+	private static final List<String> aoi_column_names = Arrays.asList(objectClass, parentObjectId, ownerSid,
+			ownerIsPrincipal, entriesInheriting);
+	private static final List<String> ae_column_names = Arrays.asList(aceOrder, sidIsPrincipal, mask, granting,
+			auditSuccess, auditFailure);
 
 	private ColumnFamilyTemplate<String, String> template;
 	private final Keyspace ksp;
 
 	public CassandraAclRepositoryImpl(Cluster cluster) {
 		ksp = HFactory.createKeyspace(KEYSPACE, cluster);
-		template = new ThriftColumnFamilyTemplate<String, String>(ksp, ACL_CF, StringSerializer.get(), StringSerializer.get());
+		template = new ThriftColumnFamilyTemplate<String, String>(ksp, ACL_CF, StringSerializer.get(),
+				StringSerializer.get());
 	}
 
 	public Map<AclObjectIdentity, List<AclEntry>> findAclEntries(List<String> objectIdsToLookup, List<String> sids) {
@@ -99,6 +102,13 @@ public class CassandraAclRepositoryImpl implements CassandraAclRepository {
 		return resultMap;
 	}
 
+	public AclObjectIdentity findAclObjectIdentity(String objectId) {
+		Entry<AclObjectIdentity, List<AclEntry>> result = template.queryColumns(objectId, new ArrayList<String>(
+				aoi_column_names), new MyColumnFamilyRowMapper());
+		return result.getKey();
+
+	}
+
 	private AclEntry getOrCreateAclEntry(List<AclEntry> aeList, String sid, String aclObjectId) {
 		for (AclEntry entry : aeList) {
 			if (entry.getSid().equals(sid)) {
@@ -121,7 +131,8 @@ public class CassandraAclRepositoryImpl implements CassandraAclRepository {
 		return identifier.substring(0, identifier.indexOf(COLUMN_NAME_TOKEN_SEPERATOR));
 	}
 
-	private class MyColumnFamilyRowMapper implements ColumnFamilyRowMapper<String, String, Entry<AclObjectIdentity, List<AclEntry>>> {
+	private class MyColumnFamilyRowMapper implements
+			ColumnFamilyRowMapper<String, String, Entry<AclObjectIdentity, List<AclEntry>>> {
 
 		public Entry<AclObjectIdentity, List<AclEntry>> mapRow(ColumnFamilyResult<String, String> results) {
 			final AclObjectIdentity aoi = new AclObjectIdentity();
@@ -168,6 +179,21 @@ public class CassandraAclRepositoryImpl implements CassandraAclRepository {
 				}
 			};
 		}
+	}
+
+	public void saveAclObjectIdentity(AclObjectIdentity newAoi) {
+		// TODO Auto-generated method stub
+
+	}
+
+	public void deleteAcls(List<String> objectIdsToDelete) {
+		// TODO Auto-generated method stub
+
+	}
+
+	public void saveAcl(AclObjectIdentity aoi, List<AclEntry> entries) {
+		// TODO Auto-generated method stub
+		
 	};
 
 }

@@ -180,7 +180,7 @@ public class CassandraAclService implements AclService {
 		for (AclEntry entry : aclEntries) {
 			AccessControlEntry ace = new AccessControlEntryImpl(entry.getId(), acl, owner, permissionFactory.buildFromMask(entry.getMask()),
 					entry.isGranting(), entry.isAuditSuccess(), entry.isAuditFailure());
-			aces.add(ace);
+			aces.add(entry.getOrder(), ace);
 		}
 		
 		try {
