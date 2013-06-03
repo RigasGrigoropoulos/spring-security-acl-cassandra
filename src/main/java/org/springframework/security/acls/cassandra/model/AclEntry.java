@@ -99,4 +99,19 @@ public class AclEntry {
 		this.auditFailure = auditFailure;
 	}
 
+	@Override
+	public String toString() {
+		StringBuilder sb = new StringBuilder();
+		sb.append("AclEntry [").append("id: ").append(id);
+		sb.append(", objectIdentity: ").append(objectIdentity);
+		sb.append(", sid: ").append(sid);
+		sb.append(", sidPrincipal: ").append(sidPrincipal);
+		sb.append(", order: ").append(order);
+		sb.append(", mask: ").append(mask);
+		sb.append(", granting: ").append(granting);
+		sb.append(", auditSuccess: ").append(auditSuccess);
+		sb.append(", auditFailure: ").append(auditFailure).append("]");
+		return sb.toString();
+	}
+
 }

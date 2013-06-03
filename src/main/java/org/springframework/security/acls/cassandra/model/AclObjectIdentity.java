@@ -71,5 +71,17 @@ public class AclObjectIdentity {
 	public void setEntriesInheriting(boolean entriesInheriting) {
 		this.entriesInheriting = entriesInheriting;
 	}
+	
+	@Override
+	public String toString() {
+		StringBuilder sb = new StringBuilder();
+		sb.append("AclObjectIdentity [").append("id: ").append(id);
+		sb.append(", objectClass: ").append(objectClass);
+		sb.append(", parentObjectId: ").append(parentObjectId);
+		sb.append(", ownerId: ").append(ownerId);
+		sb.append(", ownerPrincipal: ").append(ownerPrincipal);
+		sb.append(", entriesInheriting: ").append(entriesInheriting).append("]");
+		return sb.toString();
+	}
 
 }

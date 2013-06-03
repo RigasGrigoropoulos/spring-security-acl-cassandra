@@ -124,6 +124,42 @@ public class CassandraAclRepositoryImpl implements CassandraAclRepository {
 		return objectIdentity;
 	}
 
+	public void saveAclObjectIdentity(AclObjectIdentity newAoi) {
+		if (LOG.isDebugEnabled()) {
+			LOG.debug("BEGIN saveAclObjectIdentity: aclObjectIdentity: " + newAoi);
+		}
+		// TODO Auto-generated method stub
+	
+		if (LOG.isDebugEnabled()) {
+			LOG.debug("END saveAclObjectIdentity");
+		}
+	}
+
+	public void deleteAcls(List<String> objectIdsToDelete) {
+		if (LOG.isDebugEnabled()) {
+			LOG.debug("BEGIN deleteAcls: objectIdsToDelete: " + objectIdsToDelete);
+		}
+		
+		// TODO Auto-generated method stub
+	
+		
+		if (LOG.isDebugEnabled()) {
+			LOG.debug("END deleteAcls");
+		}
+	}
+
+	public void saveAcl(AclObjectIdentity aoi, List<AclEntry> entries) {
+		if (LOG.isDebugEnabled()) {
+			LOG.debug("BEGIN saveAcl: aclObjectIdentity: " + aoi + ", entries: " + entries);
+		}
+		// TODO Auto-generated method stub
+		
+		
+		if (LOG.isDebugEnabled()) {
+			LOG.debug("END saveAcl");
+		}
+	}
+
 	private AclEntry getOrCreateAclEntry(List<AclEntry> aeList, String sid, String aclObjectId) {
 		for (AclEntry entry : aeList) {
 			if (entry.getSid().equals(sid)) {
@@ -194,21 +230,6 @@ public class CassandraAclRepositoryImpl implements CassandraAclRepository {
 				}
 			};
 		}
-	}
-
-	public void saveAclObjectIdentity(AclObjectIdentity newAoi) {
-		// TODO Auto-generated method stub
-
-	}
-
-	public void deleteAcls(List<String> objectIdsToDelete) {
-		// TODO Auto-generated method stub
-
-	}
-
-	public void saveAcl(AclObjectIdentity aoi, List<AclEntry> entries) {
-		// TODO Auto-generated method stub
-		
 	};
 
 }

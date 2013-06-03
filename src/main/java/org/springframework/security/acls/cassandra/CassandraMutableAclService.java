@@ -51,6 +51,9 @@ public class CassandraMutableAclService extends CassandraAclService implements M
 	}
 
 	public MutableAcl createAcl(ObjectIdentity objectIdentity) throws AlreadyExistsException {
+		if (LOG.isDebugEnabled()) {
+			LOG.debug("BEGIN createAcl: objectIdentity: " + objectIdentity);
+		}
 		Assert.notNull(objectIdentity, "Object Identity required");
 
 		// Check this object identity hasn't already been persisted
@@ -75,10 +78,16 @@ public class CassandraMutableAclService extends CassandraAclService implements M
 		Acl acl = readAclById(objectIdentity);
 		Assert.isInstanceOf(MutableAcl.class, acl, "MutableAcl should be been returned");
 
+		if (LOG.isDebugEnabled()) {
+			LOG.debug("END createAcl: acl: " + acl);
+		}
 		return (MutableAcl) acl;
 	}
 
 	public void deleteAcl(ObjectIdentity objectIdentity, boolean deleteChildren) throws ChildrenExistException {
+		if (LOG.isDebugEnabled()) {
+			LOG.debug("BEGIN deleteAcl: objectIdentity: " + objectIdentity + ", deleteChildren: " + deleteChildren);
+		}
 		Assert.notNull(objectIdentity, "Object Identity required");
 		Assert.notNull(objectIdentity.getIdentifier(), "Object Identity doesn't provide an identifier");
 
@@ -104,9 +113,16 @@ public class CassandraMutableAclService extends CassandraAclService implements M
 				aclCache.evictFromCache(obj);
 			}
 		}
+		
+		if (LOG.isDebugEnabled()) {
+			LOG.debug("END deleteAcl");
+		}
 	}
 
 	public MutableAcl updateAcl(MutableAcl acl) throws NotFoundException {
+		if (LOG.isDebugEnabled()) {
+			LOG.debug("BEGIN updateAcl: acl: " + acl);
+		}
 		Assert.notNull(acl.getId(), "Object Identity doesn't provide an identifier");
 
 		// Check this object identity is already persisted
@@ -119,10 +135,15 @@ public class CassandraMutableAclService extends CassandraAclService implements M
 
 		// Clear the cache, including children
 		clearCacheIncludingChildren(acl.getObjectIdentity());
-
+		
 		// Retrieve the ACL via superclass (ensures cache registration, proper
 		// retrieval etc)
-		return (MutableAcl) readAclById(acl.getObjectIdentity());
+		MutableAcl result = (MutableAcl) readAclById(acl.getObjectIdentity());
+		
+		if (LOG.isDebugEnabled()) {
+			LOG.debug("END updateAcl: acl: " + result);
+		}
+		return result;
 	}
 
 	private List<AclEntry> convertToAclEntries(Acl acl) {

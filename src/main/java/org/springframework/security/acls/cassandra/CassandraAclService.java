@@ -41,8 +41,10 @@ import org.springframework.security.acls.model.AclCache;
 import org.springframework.security.acls.model.AclService;
 import org.springframework.security.acls.model.NotFoundException;
 import org.springframework.security.acls.model.ObjectIdentity;
+import org.springframework.security.acls.model.Permission;
 import org.springframework.security.acls.model.PermissionGrantingStrategy;
 import org.springframework.security.acls.model.Sid;
+import org.springframework.security.acls.model.UnloadedSidException;
 import org.springframework.security.util.FieldUtils;
 import org.springframework.util.Assert;
 
@@ -57,7 +59,6 @@ public class CassandraAclService implements AclService {
 	private PermissionGrantingStrategy grantingStrategy;
 
 	private final Field fieldAces = FieldUtils.getField(AclImpl.class, "aces");
-
 
 	public CassandraAclService(CassandraAclRepository aclRepository, AclCache aclCache, PermissionGrantingStrategy grantingStrategy,
 			AclAuthorizationStrategy aclAuthorizationStrategy) {
@@ -143,11 +144,11 @@ public class CassandraAclService implements AclService {
 	private Map<ObjectIdentity, Acl> doLookup(List<ObjectIdentity> objects, List<Sid> sids) {
 		List<String> objectIds = new ArrayList<String>();
 		List<String> sidIds = new ArrayList<String>();
-		
+
 		for (ObjectIdentity objId : objects) {
 			objectIds.add((String) objId.getIdentifier());
 		}
-		
+
 		if (sids != null) {
 			for (Sid sid : sids) {
 				if (sid instanceof PrincipalSid) {
@@ -156,8 +157,8 @@ public class CassandraAclService implements AclService {
 					sidIds.add(((GrantedAuthoritySid) sid).getGrantedAuthority());
 				}
 			}
-		}		
-		
+		}
+
 		Map<AclObjectIdentity, List<AclEntry>> aeList = aclRepository.findAclEntries(objectIds, sidIds);
 		Map<ObjectIdentity, Acl> result = new HashMap<ObjectIdentity, Acl>();
 
@@ -188,13 +189,54 @@ public class CassandraAclService implements AclService {
 					entry.isGranting(), entry.isAuditSuccess(), entry.isAuditFailure());
 			aces.add(entry.getOrder(), ace);
 		}
-		
+
 		try {
 			fieldAces.set(acl, aces);
 		} catch (Exception e) {
 			LOG.error("Could not set AccessControlEntries in the ACL", e);
-		} 
+		}
 		return acl;
+	}
+
+	private class StubAclParent implements Acl {
+		private final String id;
+
+		public StubAclParent(String id) {
+			this.id = id;
+		}
+
+		public List<AccessControlEntry> getEntries() {
+			throw new UnsupportedOperationException("Stub only");
+		}
+
+		public String getId() {
+			return id;
+		}
+
+		public ObjectIdentity getObjectIdentity() {
+			throw new UnsupportedOperationException("Stub only");
+		}
+
+		public Sid getOwner() {
+			throw new UnsupportedOperationException("Stub only");
+		}
+
+		public Acl getParentAcl() {
+			throw new UnsupportedOperationException("Stub only");
+		}
+
+		public boolean isEntriesInheriting() {
+			throw new UnsupportedOperationException("Stub only");
+		}
+
+		public boolean isGranted(List<Permission> permission, List<Sid> sids, boolean administrativeMode) throws NotFoundException,
+				UnloadedSidException {
+			throw new UnsupportedOperationException("Stub only");
+		}
+
+		public boolean isSidLoaded(List<Sid> sids) {
+			throw new UnsupportedOperationException("Stub only");
+		}
 	}
 
 }
