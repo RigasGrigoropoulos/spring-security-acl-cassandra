@@ -26,6 +26,8 @@ public interface CassandraAclRepository {
 	public Map<AclObjectIdentity, List<AclEntry>> findAcls(List<String> objectIdsToLookup, List<String> sids);
 
 	public AclObjectIdentity findAclObjectIdentity(String objectId);
+	
+	public List<AclObjectIdentity> findAclObjectIdentityChildren(String objectId);
 
 	public void deleteAcls(List<String> objectIdsToDelete);
 

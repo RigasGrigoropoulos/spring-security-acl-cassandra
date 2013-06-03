@@ -97,12 +97,9 @@ public class CassandraMutableAclService extends CassandraAclService implements M
 		List<ObjectIdentity> children = findChildren(objectIdentity);
 		if (deleteChildren) {
 			while (children != null) {
-				for (ObjectIdentity child : children) {
-					objectsToDelete.addAll(children);
-				}
+				objectsToDelete.addAll(children);
 				children = findChildren(objectIdentity);
-			}
-			
+			}			
 		} else if (children != null && !children.isEmpty()) {
 			throw new ChildrenExistException("Cannot delete '" + objectIdentity + "' (has " + children.size()
 					+ " children)");

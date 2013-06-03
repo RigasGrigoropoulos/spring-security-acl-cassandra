@@ -126,6 +126,20 @@ public class CassandraAclRepositoryImpl implements CassandraAclRepository {
 		return objectIdentity;
 	}
 
+	public List<AclObjectIdentity> findAclObjectIdentityChildren(String objectId) {
+		if (LOG.isDebugEnabled()) {
+			LOG.debug("BEGIN findAclObjectIdentityChildren: objectIdentity: " + objectId);
+		}
+		List<AclObjectIdentity> result = new ArrayList<AclObjectIdentity>();
+		
+		// TODO Auto-generated method stub
+		
+		if (LOG.isDebugEnabled()) {
+			LOG.debug("END findAclObjectIdentityChildren: children: " + result);
+		}
+		return result;
+	}
+
 	public void deleteAcls(List<String> objectIdsToDelete) {
 		if (LOG.isDebugEnabled()) {
 			LOG.debug("BEGIN deleteAcls: objectIdsToDelete: " + objectIdsToDelete);

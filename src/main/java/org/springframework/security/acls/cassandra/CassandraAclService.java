@@ -69,8 +69,15 @@ public class CassandraAclService implements AclService {
 	}
 
 	public List<ObjectIdentity> findChildren(ObjectIdentity parentIdentity) {
-		// TODO Should return null if children not found
-		return null;
+		List<ObjectIdentity> result = null;		
+		List<AclObjectIdentity> children = aclRepository.findAclObjectIdentityChildren((String) parentIdentity.getIdentifier());
+		if (children != null && !children.isEmpty()) {
+			result = new ArrayList<ObjectIdentity>();
+			for (AclObjectIdentity entry : children) {
+				result.add(new ObjectIdentityImpl(entry.getObjectClass(), entry.getId()));
+			}
+		}
+		return result;
 	}
 
 	public Acl readAclById(ObjectIdentity object) throws NotFoundException {
