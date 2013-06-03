@@ -69,7 +69,7 @@ public class CassandraAclService implements AclService {
 	}
 
 	public List<ObjectIdentity> findChildren(ObjectIdentity parentIdentity) {
-		// TODO Auto-generated method stub
+		// TODO Should return null if children not found
 		return null;
 	}
 
@@ -169,7 +169,7 @@ public class CassandraAclService implements AclService {
 		}
 		return result;
 	}
-	
+
 	private Map<ObjectIdentity, Acl> lookupParents(Set<AclObjectIdentity> acls, List<Sid> sids) {
 		List<ObjectIdentity> objectsToLookup = new ArrayList<ObjectIdentity>();
 		for (AclObjectIdentity aoi : acls) {
