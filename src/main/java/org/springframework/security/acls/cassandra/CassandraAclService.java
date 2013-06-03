@@ -21,6 +21,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -161,18 +162,27 @@ public class CassandraAclService implements AclService {
 
 		Map<AclObjectIdentity, List<AclEntry>> aeList = aclRepository.findAcls(objectIds, sidIds);
 		Map<ObjectIdentity, Acl> result = new HashMap<ObjectIdentity, Acl>();
+		Map<ObjectIdentity, Acl> parentAcls = lookupParents(aeList.keySet(), sids);
 
 		for (Entry<AclObjectIdentity, List<AclEntry>> entry : aeList.entrySet()) {
-			AclImpl loadedAcl = convert(entry.getKey(), entry.getValue(), sids);
+			Acl parentAcl = parentAcls.get(entry.getKey().getParentObjectId());
+			AclImpl loadedAcl = convert(entry.getKey(), entry.getValue(), sids, parentAcl);
 			result.put(loadedAcl.getObjectIdentity(), loadedAcl);
 		}
-
-		// TODO: find parents for ois recursively and populate Acls
-
 		return result;
 	}
+	
+	private Map<ObjectIdentity, Acl> lookupParents(Set<AclObjectIdentity> acls, List<Sid> sids) {
+		List<ObjectIdentity> objectsToLookup = new ArrayList<ObjectIdentity>();
+		for (AclObjectIdentity aoi : acls) {
+			if (aoi.getParentObjectId() != null && !aoi.getParentObjectId().isEmpty()) {
+				objectsToLookup.add(new ObjectIdentityImpl(aoi.getObjectClass(), aoi.getId()));
+			}
+		}
+		return doLookup(objectsToLookup, sids);
+	}
 
-	private AclImpl convert(AclObjectIdentity aclObjectIdentity, List<AclEntry> aclEntries, List<Sid> sids) {
+	private AclImpl convert(AclObjectIdentity aclObjectIdentity, List<AclEntry> aclEntries, List<Sid> sids, Acl parentAcl) {
 		Sid owner;
 		if (aclObjectIdentity.isOwnerPrincipal()) {
 			owner = new PrincipalSid(aclObjectIdentity.getOwnerId());
@@ -181,7 +191,7 @@ public class CassandraAclService implements AclService {
 		}
 
 		AclImpl acl = new AclImpl(new ObjectIdentityImpl(aclObjectIdentity.getObjectClass(), aclObjectIdentity.getId()), aclObjectIdentity.getId(),
-				aclAuthorizationStrategy, grantingStrategy, null, sids, aclObjectIdentity.isEntriesInheriting(), owner);
+				aclAuthorizationStrategy, grantingStrategy, parentAcl, sids, aclObjectIdentity.isEntriesInheriting(), owner);
 
 		List<AccessControlEntry> aces = new ArrayList<AccessControlEntry>();
 		for (AclEntry entry : aclEntries) {
@@ -197,46 +207,4 @@ public class CassandraAclService implements AclService {
 		}
 		return acl;
 	}
-
-	private class StubAclParent implements Acl {
-		private final String id;
-
-		public StubAclParent(String id) {
-			this.id = id;
-		}
-
-		public List<AccessControlEntry> getEntries() {
-			throw new UnsupportedOperationException("Stub only");
-		}
-
-		public String getId() {
-			return id;
-		}
-
-		public ObjectIdentity getObjectIdentity() {
-			throw new UnsupportedOperationException("Stub only");
-		}
-
-		public Sid getOwner() {
-			throw new UnsupportedOperationException("Stub only");
-		}
-
-		public Acl getParentAcl() {
-			throw new UnsupportedOperationException("Stub only");
-		}
-
-		public boolean isEntriesInheriting() {
-			throw new UnsupportedOperationException("Stub only");
-		}
-
-		public boolean isGranted(List<Permission> permission, List<Sid> sids, boolean administrativeMode) throws NotFoundException,
-				UnloadedSidException {
-			throw new UnsupportedOperationException("Stub only");
-		}
-
-		public boolean isSidLoaded(List<Sid> sids) {
-			throw new UnsupportedOperationException("Stub only");
-		}
-	}
-
 }
