@@ -25,11 +25,13 @@ import me.prettyprint.cassandra.serializers.StringSerializer;
 import me.prettyprint.cassandra.service.template.ColumnFamilyResult;
 import me.prettyprint.cassandra.service.template.ColumnFamilyRowMapper;
 import me.prettyprint.cassandra.service.template.ColumnFamilyTemplate;
+import me.prettyprint.cassandra.service.template.ColumnFamilyUpdater;
 import me.prettyprint.cassandra.service.template.MappedColumnFamilyResult;
 import me.prettyprint.cassandra.service.template.ThriftColumnFamilyTemplate;
 import me.prettyprint.hector.api.Cluster;
 import me.prettyprint.hector.api.Keyspace;
 import me.prettyprint.hector.api.factory.HFactory;
+import me.prettyprint.hector.api.mutation.Mutator;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -70,7 +72,7 @@ public class CassandraAclRepositoryImpl implements CassandraAclRepository {
 				StringSerializer.get());
 	}
 
-	public Map<AclObjectIdentity, List<AclEntry>> findAclEntries(List<String> objectIdsToLookup, List<String> sids) {
+	public Map<AclObjectIdentity, List<AclEntry>> findAcls(List<String> objectIdsToLookup, List<String> sids) {
 		if (LOG.isDebugEnabled()) {
 			LOG.debug("BEGIN findAclEntries: objectIdentities: " + objectIdsToLookup + ", sids: " + sids);
 		}
@@ -124,41 +126,68 @@ public class CassandraAclRepositoryImpl implements CassandraAclRepository {
 		return objectIdentity;
 	}
 
-	public void saveAclObjectIdentity(AclObjectIdentity newAoi) {
-		if (LOG.isDebugEnabled()) {
-			LOG.debug("BEGIN saveAclObjectIdentity: aclObjectIdentity: " + newAoi);
-		}
-		// TODO Auto-generated method stub
-	
-		if (LOG.isDebugEnabled()) {
-			LOG.debug("END saveAclObjectIdentity");
-		}
-	}
-
 	public void deleteAcls(List<String> objectIdsToDelete) {
 		if (LOG.isDebugEnabled()) {
 			LOG.debug("BEGIN deleteAcls: objectIdsToDelete: " + objectIdsToDelete);
 		}
 		
-		// TODO Auto-generated method stub
-	
+		Mutator<String> mutator = template.createMutator();
+		for (String entryId : objectIdsToDelete) {
+			mutator.addDeletion(entryId, ACL_CF);
+		}
+		mutator.execute();	
 		
 		if (LOG.isDebugEnabled()) {
 			LOG.debug("END deleteAcls");
 		}
 	}
-
-	public void saveAcl(AclObjectIdentity aoi, List<AclEntry> entries) {
+	
+	public void saveAcl(AclObjectIdentity aoi) {
 		if (LOG.isDebugEnabled()) {
-			LOG.debug("BEGIN saveAcl: aclObjectIdentity: " + aoi + ", entries: " + entries);
+			LOG.debug("BEGIN saveAcl: aclObjectIdentity: " + aoi);
 		}
-		// TODO Auto-generated method stub
-		
+		ColumnFamilyUpdater<String, String> updater = template.createUpdater(aoi.getId());
+		updater.setString(objectClass, aoi.getObjectClass());
+		updater.setBoolean(entriesInheriting, aoi.isEntriesInheriting());
+		updater.setString(ownerSid, aoi.getOwnerId());
+		updater.setBoolean(ownerIsPrincipal, aoi.isOwnerPrincipal());
+		updater.setString(parentObjectId, aoi.getParentObjectId());		
+		template.update(updater);
 		
 		if (LOG.isDebugEnabled()) {
 			LOG.debug("END saveAcl");
 		}
 	}
+	
+	public void updateAcl(AclObjectIdentity aoi, List<AclEntry> entries) {
+		if (LOG.isDebugEnabled()) {
+			LOG.debug("BEGIN updateAcl: aclObjectIdentity: " + aoi + ", entries: " + entries);
+		}
+		
+		Mutator<String> mutator = template.createMutator();
+		mutator.addDeletion(aoi.getId(), ACL_CF);
+		
+		ColumnFamilyUpdater<String, String> updater = template.createUpdater(aoi.getId(), mutator);
+		updater.setString(objectClass, aoi.getObjectClass());
+		updater.setBoolean(entriesInheriting, aoi.isEntriesInheriting());
+		updater.setString(ownerSid, aoi.getOwnerId());
+		updater.setBoolean(ownerIsPrincipal, aoi.isOwnerPrincipal());
+		updater.setString(parentObjectId, aoi.getParentObjectId());		
+		
+		for (AclEntry entry : entries) {
+			updater.setInteger(entry.getSid() + COLUMN_NAME_TOKEN_SEPERATOR + aceOrder, entry.getOrder());
+			updater.setInteger(entry.getSid() + COLUMN_NAME_TOKEN_SEPERATOR + mask, entry.getMask());
+			updater.setBoolean(entry.getSid() + COLUMN_NAME_TOKEN_SEPERATOR + auditSuccess, entry.isAuditSuccess());
+			updater.setBoolean(entry.getSid() + COLUMN_NAME_TOKEN_SEPERATOR + auditFailure, entry.isAuditFailure());
+			updater.setBoolean(entry.getSid() + COLUMN_NAME_TOKEN_SEPERATOR + sidIsPrincipal, entry.isSidPrincipal());
+			updater.setBoolean(entry.getSid() + COLUMN_NAME_TOKEN_SEPERATOR + granting, entry.isGranting());
+		}
+		template.update(updater);
+		
+		if (LOG.isDebugEnabled()) {
+			LOG.debug("END updateAcl");
+		}
+	};
 
 	private AclEntry getOrCreateAclEntry(List<AclEntry> aeList, String sid, String aclObjectId) {
 		for (AclEntry entry : aeList) {
@@ -230,6 +259,5 @@ public class CassandraAclRepositoryImpl implements CassandraAclRepository {
 				}
 			};
 		}
-	};
-
+	}
 }

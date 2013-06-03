@@ -71,7 +71,7 @@ public class CassandraMutableAclService extends CassandraAclService implements M
 		newAoi.setOwnerPrincipal(true);
 		newAoi.setObjectClass(objectIdentity.getType());
 		newAoi.setId((String) objectIdentity.getIdentifier());
-		aclRepository.saveAclObjectIdentity(newAoi);
+		aclRepository.saveAcl(newAoi);
 
 		// Retrieve the ACL via superclass (ensures cache registration, proper
 		// retrieval etc)
@@ -130,8 +130,7 @@ public class CassandraMutableAclService extends CassandraAclService implements M
 			throw new NotFoundException("Object identity '" + (String) acl.getId() + "' does not exist");
 		}
 
-		aclRepository.deleteAcls(Arrays.asList(new String[] { (String) acl.getId() }));
-		aclRepository.saveAcl(convertToAclObjectIdentity(acl), convertToAclEntries(acl));
+		aclRepository.updateAcl(convertToAclObjectIdentity(acl), convertToAclEntries(acl));
 
 		// Clear the cache, including children
 		clearCacheIncludingChildren(acl.getObjectIdentity());

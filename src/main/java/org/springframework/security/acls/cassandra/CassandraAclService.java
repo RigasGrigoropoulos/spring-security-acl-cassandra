@@ -159,7 +159,7 @@ public class CassandraAclService implements AclService {
 			}
 		}
 
-		Map<AclObjectIdentity, List<AclEntry>> aeList = aclRepository.findAclEntries(objectIds, sidIds);
+		Map<AclObjectIdentity, List<AclEntry>> aeList = aclRepository.findAcls(objectIds, sidIds);
 		Map<ObjectIdentity, Acl> result = new HashMap<ObjectIdentity, Acl>();
 
 		for (Entry<AclObjectIdentity, List<AclEntry>> entry : aeList.entrySet()) {
