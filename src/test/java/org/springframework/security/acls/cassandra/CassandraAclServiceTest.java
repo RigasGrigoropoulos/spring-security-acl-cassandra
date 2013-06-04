@@ -41,19 +41,23 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.acls.cassandra.model.AclEntry;
 import org.springframework.security.acls.cassandra.model.AclObjectIdentity;
 import org.springframework.security.acls.domain.AccessControlEntryImpl;
+import org.springframework.security.acls.domain.AclImpl;
 import org.springframework.security.acls.domain.BasePermission;
 import org.springframework.security.acls.domain.GrantedAuthoritySid;
 import org.springframework.security.acls.domain.ObjectIdentityImpl;
 import org.springframework.security.acls.domain.PrincipalSid;
 import org.springframework.security.acls.model.AccessControlEntry;
 import org.springframework.security.acls.model.Acl;
+import org.springframework.security.acls.model.AlreadyExistsException;
 import org.springframework.security.acls.model.MutableAcl;
 import org.springframework.security.acls.model.MutableAclService;
+import org.springframework.security.acls.model.NotFoundException;
 import org.springframework.security.acls.model.ObjectIdentity;
 import org.springframework.security.acls.model.Permission;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.test.annotation.ExpectedException;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
@@ -196,6 +200,47 @@ public class CassandraAclServiceTest {
 //
 //		aoi = service.findAclObjectIdentity(aoi);
 //		assertNull(aoi);
+	}
+	
+	@Test
+	@ExpectedException(IllegalArgumentException.class)
+	public void testCreateNullAcl() {
+		service.createAcl(null);
+	}
+	
+	@Test
+	@ExpectedException(AlreadyExistsException.class)
+	public void testCreateAlreadyExisting() {
+		ObjectIdentity oi = createDefaultTestOI();
+		service.createAcl(oi);
+		service.createAcl(oi);		
+	}
+	
+	@Test
+	@ExpectedException(IllegalArgumentException.class)
+	public void testDeleteNullAcl() {
+		service.deleteAcl(null, false);
+	}
+	
+	@Test
+	public void testDeleteAclNotExisting() {
+		ObjectIdentity oi = createDefaultTestOI();
+		service.deleteAcl(oi, false);	
+	}
+	
+	@Test
+	@ExpectedException(IllegalArgumentException.class)
+	public void testUpdateNullAcl() {
+		service.updateAcl(null);
+	}
+	
+	@Test
+	@ExpectedException(NotFoundException.class)
+	public void testUpdateAclNotExisting() {
+		ObjectIdentity oi = createDefaultTestOI();
+		MutableAcl acl = service.createAcl(oi);
+		service.deleteAcl(oi, false);	
+		service.updateAcl(acl);
 	}
 
 }
