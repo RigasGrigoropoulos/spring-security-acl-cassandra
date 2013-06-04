@@ -14,6 +14,7 @@
  */
 package org.springframework.security.acls.cassandra.model;
 
+import org.springframework.security.acls.domain.ObjectIdentityImpl;
 import org.springframework.security.acls.model.ObjectIdentity;
 import org.springframework.util.Assert;
 
@@ -89,6 +90,10 @@ public class AclObjectIdentity {
 
 	public void setParentObjectClass(String parentObjectClass) {
 		this.parentObjectClass = parentObjectClass;
+	}
+
+	public ObjectIdentity toObjectIdentity() {
+		return new ObjectIdentityImpl(objectClass, id);
 	}
 
 	@Override

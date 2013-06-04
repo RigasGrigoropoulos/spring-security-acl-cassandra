@@ -33,7 +33,6 @@ import org.springframework.security.acls.domain.AclAuthorizationStrategy;
 import org.springframework.security.acls.domain.AclImpl;
 import org.springframework.security.acls.domain.DefaultPermissionFactory;
 import org.springframework.security.acls.domain.GrantedAuthoritySid;
-import org.springframework.security.acls.domain.ObjectIdentityImpl;
 import org.springframework.security.acls.domain.PermissionFactory;
 import org.springframework.security.acls.domain.PrincipalSid;
 import org.springframework.security.acls.model.AccessControlEntry;
@@ -80,7 +79,7 @@ public class CassandraAclService implements AclService {
 		if (children != null && !children.isEmpty()) {
 			result = new ArrayList<ObjectIdentity>();
 			for (AclObjectIdentity entry : children) {
-				result.add(new ObjectIdentityImpl(entry.getObjectClass(), entry.getId()));
+				result.add(entry.toObjectIdentity());
 			}
 		}
 		
@@ -196,7 +195,7 @@ public class CassandraAclService implements AclService {
 		List<ObjectIdentity> objectsToLookup = new ArrayList<ObjectIdentity>();
 		for (AclObjectIdentity aoi : acls) {
 			if (aoi.getParentObjectId() != null && !aoi.getParentObjectId().isEmpty()) {
-				objectsToLookup.add(new ObjectIdentityImpl(aoi.getParentObjectClass(), aoi.getParentObjectId()));
+				objectsToLookup.add(aoi.toObjectIdentity());
 			}
 		}
 		return doLookup(objectsToLookup, sids);
@@ -210,7 +209,7 @@ public class CassandraAclService implements AclService {
 			owner = new GrantedAuthoritySid(aclObjectIdentity.getOwnerId());
 		}
 
-		AclImpl acl = new AclImpl(new ObjectIdentityImpl(aclObjectIdentity.getObjectClass(), aclObjectIdentity.getId()), aclObjectIdentity.getId(),
+		AclImpl acl = new AclImpl(aclObjectIdentity.toObjectIdentity(), aclObjectIdentity.getId(),
 				aclAuthorizationStrategy, grantingStrategy, parentAcl, sids, aclObjectIdentity.isEntriesInheriting(), owner);
 
 		List<AccessControlEntry> aces = new ArrayList<AccessControlEntry>();
