@@ -249,7 +249,6 @@ public class CassandraAclRepositoryImpl implements CassandraAclRepository {
 	}
 	
 	private void assertAclObjectIdentityList(List<AclObjectIdentity> aoiList) {
-		Assert.notNull(aoiList, "The AclObjectIdentity list cannot be null");
 		Assert.notEmpty(aoiList, "The AclObjectIdentity list cannot be empty");
 		for (AclObjectIdentity aoi : aoiList) {
 			assertAclObjectIdentity(aoi);
