@@ -51,11 +51,12 @@ public class CassandraMutableAclService extends CassandraAclService implements M
 	}
 
 	public MutableAcl createAcl(ObjectIdentity objectIdentity) throws AlreadyExistsException {
+		Assert.notNull(objectIdentity, "Object Identity required");
+		
 		if (LOG.isDebugEnabled()) {
 			LOG.debug("BEGIN createAcl: objectIdentity: " + objectIdentity);
 		}
-		Assert.notNull(objectIdentity, "Object Identity required");
-
+		
 		// Need to retrieve the current principal, in order to know who "owns"
 		// this ACL (can be changed later on)
 		Authentication auth = SecurityContextHolder.getContext().getAuthentication();
@@ -82,11 +83,12 @@ public class CassandraMutableAclService extends CassandraAclService implements M
 	}
 
 	public void deleteAcl(ObjectIdentity objectIdentity, boolean deleteChildren) throws ChildrenExistException {
+		Assert.notNull(objectIdentity, "Object Identity required");
+		Assert.notNull(objectIdentity.getIdentifier(), "Object Identity doesn't provide an identifier");
+		
 		if (LOG.isDebugEnabled()) {
 			LOG.debug("BEGIN deleteAcl: objectIdentity: " + objectIdentity + ", deleteChildren: " + deleteChildren);
 		}
-		Assert.notNull(objectIdentity, "Object Identity required");
-		Assert.notNull(objectIdentity.getIdentifier(), "Object Identity doesn't provide an identifier");
 
 		List<ObjectIdentity> objectsToDelete = Arrays.asList(new ObjectIdentity[] { objectIdentity });
 		List<AclObjectIdentity> objIdsToDelete = new ArrayList<AclObjectIdentity>();
@@ -121,10 +123,11 @@ public class CassandraMutableAclService extends CassandraAclService implements M
 	}
 
 	public MutableAcl updateAcl(MutableAcl acl) throws NotFoundException {
+		Assert.notNull(acl.getId(), "Object Identity doesn't provide an identifier");
+		
 		if (LOG.isDebugEnabled()) {
 			LOG.debug("BEGIN updateAcl: acl: " + acl);
-		}
-		Assert.notNull(acl.getId(), "Object Identity doesn't provide an identifier");
+		}		
 
 		aclRepository.updateAcl(convertToAclObjectIdentity(acl), convertToAclEntries(acl));
 

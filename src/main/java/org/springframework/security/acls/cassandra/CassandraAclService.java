@@ -95,10 +95,11 @@ public class CassandraAclService implements AclService {
 	}
 
 	public Map<ObjectIdentity, Acl> readAclsById(List<ObjectIdentity> objects, List<Sid> sids) throws NotFoundException {
+		Assert.notEmpty(objects, "Objects to lookup required");
+		
 		if (LOG.isDebugEnabled()) {
 			LOG.debug("BEGIN readAclById: objectIdentities: " + objects + ", sids: " + sids);
 		}
-		Assert.notEmpty(objects, "Objects to lookup required");
 
 		// contains FULLY loaded Acl objects
 		Map<ObjectIdentity, Acl> result = new HashMap<ObjectIdentity, Acl>();
