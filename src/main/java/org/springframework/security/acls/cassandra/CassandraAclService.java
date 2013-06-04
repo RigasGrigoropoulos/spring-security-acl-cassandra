@@ -33,6 +33,7 @@ import org.springframework.security.acls.domain.AclAuthorizationStrategy;
 import org.springframework.security.acls.domain.AclImpl;
 import org.springframework.security.acls.domain.DefaultPermissionFactory;
 import org.springframework.security.acls.domain.GrantedAuthoritySid;
+import org.springframework.security.acls.domain.ObjectIdentityImpl;
 import org.springframework.security.acls.domain.PermissionFactory;
 import org.springframework.security.acls.domain.PrincipalSid;
 import org.springframework.security.acls.model.AccessControlEntry;
@@ -193,8 +194,9 @@ public class CassandraAclService implements AclService {
 	private Map<ObjectIdentity, Acl> lookupParents(Set<AclObjectIdentity> acls, List<Sid> sids) {
 		List<ObjectIdentity> objectsToLookup = new ArrayList<ObjectIdentity>();
 		for (AclObjectIdentity aoi : acls) {
-			if (aoi.getParentObjectId() != null && !aoi.getParentObjectId().isEmpty()) {
-				objectsToLookup.add(aoi.toObjectIdentity());
+			if (aoi.getParentObjectId() != null && !aoi.getParentObjectId().isEmpty()
+					&& aoi.getParentObjectClass() != null && !aoi.getParentObjectClass().isEmpty()) {
+				objectsToLookup.add(new ObjectIdentityImpl(aoi.getParentObjectClass(), aoi.getParentObjectId()));
 			}
 		}
 		return doLookup(objectsToLookup, sids);
