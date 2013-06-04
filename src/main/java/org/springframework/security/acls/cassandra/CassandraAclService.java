@@ -182,12 +182,11 @@ public class CassandraAclService implements AclService {
 			Map<ObjectIdentity, Acl> parentAcls = lookupParents(aeList.keySet(), sids);
 
 			for (Entry<AclObjectIdentity, List<AclEntry>> entry : aeList.entrySet()) {
-				Acl parentAcl = parentAcls.get(entry.getKey().getParentObjectId()); //TODO: fix
+				Acl parentAcl = parentAcls.get(entry.getKey().toObjectIdentity());
 				AclImpl loadedAcl = convert(entry.getKey(), entry.getValue(), sids, parentAcl);
 				result.put(loadedAcl.getObjectIdentity(), loadedAcl);
 			}
-		}
-		
+		}		
 		return result;
 	}
 
