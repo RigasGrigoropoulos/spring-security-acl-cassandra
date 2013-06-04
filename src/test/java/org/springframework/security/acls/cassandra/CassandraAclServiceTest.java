@@ -21,15 +21,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
-import me.prettyprint.cassandra.serializers.CompositeSerializer;
-import me.prettyprint.cassandra.serializers.StringSerializer;
 import me.prettyprint.cassandra.service.ThriftKsDef;
-import me.prettyprint.cassandra.service.template.ColumnFamilyTemplate;
-import me.prettyprint.cassandra.service.template.ColumnFamilyUpdater;
-import me.prettyprint.cassandra.service.template.ThriftColumnFamilyTemplate;
 import me.prettyprint.hector.api.Cluster;
-import me.prettyprint.hector.api.Keyspace;
-import me.prettyprint.hector.api.beans.Composite;
 import me.prettyprint.hector.api.ddl.ColumnFamilyDefinition;
 import me.prettyprint.hector.api.ddl.KeyspaceDefinition;
 import me.prettyprint.hector.api.factory.HFactory;
@@ -39,10 +32,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.acls.cassandra.model.AclEntry;
-import org.springframework.security.acls.cassandra.model.AclObjectIdentity;
-import org.springframework.security.acls.domain.AccessControlEntryImpl;
-import org.springframework.security.acls.domain.AclImpl;
 import org.springframework.security.acls.domain.BasePermission;
 import org.springframework.security.acls.domain.GrantedAuthoritySid;
 import org.springframework.security.acls.domain.ObjectIdentityImpl;
@@ -54,7 +43,7 @@ import org.springframework.security.acls.model.MutableAcl;
 import org.springframework.security.acls.model.MutableAclService;
 import org.springframework.security.acls.model.NotFoundException;
 import org.springframework.security.acls.model.ObjectIdentity;
-import org.springframework.security.acls.model.Permission;
+import org.springframework.security.acls.model.Sid;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -73,7 +62,6 @@ public class CassandraAclServiceTest {
 	private static final String sid2 = "sid2@system";
 
 	private static final String aoi_id = "123";
-	private static final String aoi_parent_id = "456";
 	private static final String aoi_class = "a.b.c.Class";
 	private static final String ROLE_ADMIN = "ROLE_ADMIN";
 
@@ -167,40 +155,73 @@ public class CassandraAclServiceTest {
 
 	@Test
 	public void testCreateFindUpdateDeleteAclWithParent() {
+		// Test createAcl
 		ObjectIdentity parentObjectIdentity = createDefaultTestOI();
 		MutableAcl parentMutableAcl = service.createAcl(parentObjectIdentity);
 		assertAcl(parentObjectIdentity, parentMutableAcl, sid1);
 
+		// Test readAclById(ObjectIdentity)
 		Acl parentAcl = service.readAclById(parentObjectIdentity);
 		assertAcl(parentObjectIdentity, parentAcl, sid1);
 		
+		// Test updateAcl
 		parentMutableAcl.setEntriesInheriting(true);
 		parentMutableAcl.setOwner(new GrantedAuthoritySid(ROLE_ADMIN));
 		MutableAcl updatedParentMutableAcl = service.updateAcl(parentMutableAcl);
 		assertAcl(parentMutableAcl, updatedParentMutableAcl);
 
+		// Test createAcl
 		ObjectIdentity childObjectIdentity = new ObjectIdentityImpl(aoi_class, "567");
 		MutableAcl childMutableAcl = service.createAcl(childObjectIdentity);
 		assertAcl(childObjectIdentity, childMutableAcl, sid1);
 		
+		// Test updateAcl
 		childMutableAcl.setParent(updatedParentMutableAcl);
 		childMutableAcl.insertAce(0, BasePermission.READ, new PrincipalSid(sid1), true);
 		childMutableAcl.insertAce(1, BasePermission.WRITE, new PrincipalSid(sid2), true);
 		MutableAcl updatedchildMutableAcl = service.updateAcl(childMutableAcl);
 		assertAcl(childMutableAcl, updatedchildMutableAcl);
 		
-//
-//		Map<AclObjectIdentity, List<AclEntry>> result = service.findAcls(Arrays.asList(new AclObjectIdentity[] { aoi }), null);
-//		assertEquals(1, result.size());
-//		assertAclObjectIdentity(aoi, result.keySet().iterator().next());
-//		List<AclEntry> aclEntries = result.values().iterator().next();
-//		assertAclEntry(aoi, entry1, aclEntries.get(1));
-//		assertAclEntry(aoi, entry2, aclEntries.get(0));
-//
-//		service.deleteAcls(Arrays.asList(new AclObjectIdentity[] { aoi }));
-//
-//		aoi = service.findAclObjectIdentity(aoi);
-//		assertNull(aoi);
+		// Test readAclById(ObjectIdentity)
+		Acl childAcl = service.readAclById(childObjectIdentity);
+		assertAcl(updatedchildMutableAcl, childAcl);
+		
+		// Test readAclById(ObjectIdentity, List<Sid>) without Sid filter
+		childAcl = service.readAclById(childObjectIdentity, null);
+		assertAcl(updatedchildMutableAcl, childAcl);
+		
+		// Test readAclById(ObjectIdentity, List<Sid>) with all Sids in filter
+		childAcl = service.readAclById(childObjectIdentity, Arrays.asList(new Sid[] { new PrincipalSid(sid1), new PrincipalSid(sid2) }));
+		assertAcl(updatedchildMutableAcl, childAcl);
+		
+		// Test readAclById(ObjectIdentity, List<Sid>) with one Sid in filter
+		childAcl = service.readAclById(childObjectIdentity, Arrays.asList(new Sid[] { new PrincipalSid(sid1) }));
+		assertEquals(1, childAcl.getEntries().size());
+		
+		// Test readAclsById(List<ObjectIdentity>)
+		Map<ObjectIdentity, Acl> resultMap = service.readAclsById(Arrays.asList(new ObjectIdentity[] { childObjectIdentity }));
+		assertEquals(1, resultMap.size());
+		assertAcl(updatedchildMutableAcl, resultMap.values().iterator().next());
+		
+		// Test readAclsById(List<ObjectIdentity>, List<Sid) without Sid filter
+		resultMap = service.readAclsById(Arrays.asList(new ObjectIdentity[] { childObjectIdentity }), null);
+		assertEquals(1, resultMap.size());
+		assertAcl(updatedchildMutableAcl, resultMap.values().iterator().next());
+		
+		// Test readAclsById(List<ObjectIdentity>, List<Sid) with all Sids in filter
+		resultMap = service.readAclsById(Arrays.asList(new ObjectIdentity[] { childObjectIdentity }), Arrays.asList(new Sid[] { new PrincipalSid(sid1), new PrincipalSid(sid2) }));
+		assertEquals(1, resultMap.size());
+		assertAcl(updatedchildMutableAcl, resultMap.values().iterator().next());
+		
+		// Test readAclsById(List<ObjectIdentity>, List<Sid) with one Sid in filter
+		resultMap = service.readAclsById(Arrays.asList(new ObjectIdentity[] { childObjectIdentity }), Arrays.asList(new Sid[] { new PrincipalSid(sid1) }));
+		assertEquals(1, resultMap.size());
+		assertEquals(1, resultMap.values().iterator().next().getEntries().size());
+		
+		// Test deleteAcl 
+		service.deleteAcl(childObjectIdentity, false);
+		childAcl = service.readAclById(childObjectIdentity);
+		assertNull(childAcl);
 	}
 	
 	@Test
