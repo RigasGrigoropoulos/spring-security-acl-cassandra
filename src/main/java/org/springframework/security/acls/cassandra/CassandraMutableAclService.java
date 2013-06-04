@@ -187,6 +187,7 @@ public class CassandraMutableAclService extends CassandraAclService implements M
 			result.setOwnerPrincipal(false);
 		}
 		result.setParentObjectId(acl.getParentAcl() != null ? (String) acl.getParentAcl().getObjectIdentity().getIdentifier() : "");
+		result.setParentObjectClass(acl.getParentAcl() != null ? (String) acl.getParentAcl().getObjectIdentity().getType() : "");
 
 		return result;
 	}

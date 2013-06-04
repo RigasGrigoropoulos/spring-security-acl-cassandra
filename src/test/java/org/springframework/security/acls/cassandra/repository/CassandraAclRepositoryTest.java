@@ -22,14 +22,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import me.prettyprint.cassandra.serializers.CompositeSerializer;
-import me.prettyprint.cassandra.serializers.StringSerializer;
 import me.prettyprint.cassandra.service.ThriftKsDef;
-import me.prettyprint.cassandra.service.template.ColumnFamilyTemplate;
-import me.prettyprint.cassandra.service.template.ThriftColumnFamilyTemplate;
 import me.prettyprint.hector.api.Cluster;
-import me.prettyprint.hector.api.Keyspace;
-import me.prettyprint.hector.api.beans.Composite;
 import me.prettyprint.hector.api.ddl.ColumnFamilyDefinition;
 import me.prettyprint.hector.api.ddl.KeyspaceDefinition;
 import me.prettyprint.hector.api.factory.HFactory;
@@ -44,7 +38,6 @@ import org.springframework.security.acls.cassandra.model.AclObjectIdentity;
 import org.springframework.security.acls.cassandra.repository.CassandraAclRepository;
 import org.springframework.security.acls.cassandra.repository.exceptions.AclAlreadyExistsException;
 import org.springframework.security.acls.cassandra.repository.exceptions.AclNotFoundException;
-import org.springframework.security.acls.domain.GrantedAuthoritySid;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -73,8 +66,6 @@ public class CassandraAclRepositoryTest {
 	@Autowired
 	private Cluster cluster;
 
-	private ColumnFamilyTemplate<Composite, Composite> template;
-	private Keyspace ksp;
 	private KeyspaceDefinition keyspaceDef;
 
 	@Before
@@ -92,9 +83,6 @@ public class CassandraAclRepositoryTest {
 		// "true" as the second param means that Hector will block until all
 		// nodes see the change.
 		cluster.addKeyspace(newKeyspace, true);
-
-		ksp = HFactory.createKeyspace(KEYSPACE, cluster);
-		template = new ThriftColumnFamilyTemplate<Composite, Composite>(ksp, ACL_CF, CompositeSerializer.get(), CompositeSerializer.get());
 
 		SecurityContextHolder.getContext().setAuthentication(
 				new UsernamePasswordAuthenticationToken(sid1, "password", Arrays.asList(new SimpleGrantedAuthority[] { new SimpleGrantedAuthority(
@@ -116,7 +104,6 @@ public class CassandraAclRepositoryTest {
 		assertAclObjectIdentity(newAoi, aoi);
 
 		aoi.setEntriesInheriting(false);
-		aoi.setParentObjectId(null);
 		// Do not fill in id. It should get values automatically anyway.
 		AclEntry entry1 = createTestAclEntry(sid1, 0);
 		AclEntry entry2 = createTestAclEntry(ROLE_ADMIN, 1);
@@ -373,6 +360,7 @@ public class CassandraAclRepositoryTest {
 		newAoi.setOwnerId(sid1);
 		newAoi.setOwnerPrincipal(true);
 		newAoi.setParentObjectId(aoi_parent_id);
+		newAoi.setParentObjectClass(aoi_class);
 		return newAoi;
 	}
 
@@ -381,6 +369,7 @@ public class CassandraAclRepositoryTest {
 		assertEquals(expected.getObjectClass(), actual.getObjectClass());
 		assertEquals(expected.getOwnerId(), actual.getOwnerId());
 		assertEquals(expected.getParentObjectId(), actual.getParentObjectId());
+		assertEquals(expected.getParentObjectClass(), actual.getParentObjectClass());
 		assertEquals(expected.isEntriesInheriting(), actual.isEntriesInheriting());
 		assertEquals(expected.isOwnerPrincipal(), actual.isOwnerPrincipal());
 	}

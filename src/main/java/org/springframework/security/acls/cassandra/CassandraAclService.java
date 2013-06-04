@@ -172,7 +172,7 @@ public class CassandraAclService implements AclService {
 			Map<ObjectIdentity, Acl> parentAcls = lookupParents(aeList.keySet(), sids);
 
 			for (Entry<AclObjectIdentity, List<AclEntry>> entry : aeList.entrySet()) {
-				Acl parentAcl = parentAcls.get(entry.getKey().getParentObjectId());
+				Acl parentAcl = parentAcls.get(entry.getKey().getParentObjectId()); //TODO: fix
 				AclImpl loadedAcl = convert(entry.getKey(), entry.getValue(), sids, parentAcl);
 				result.put(loadedAcl.getObjectIdentity(), loadedAcl);
 			}
@@ -185,7 +185,7 @@ public class CassandraAclService implements AclService {
 		List<ObjectIdentity> objectsToLookup = new ArrayList<ObjectIdentity>();
 		for (AclObjectIdentity aoi : acls) {
 			if (aoi.getParentObjectId() != null && !aoi.getParentObjectId().isEmpty()) {
-				objectsToLookup.add(new ObjectIdentityImpl(aoi.getObjectClass(), aoi.getId()));
+				objectsToLookup.add(new ObjectIdentityImpl(aoi.getParentObjectClass(), aoi.getParentObjectId()));
 			}
 		}
 		return doLookup(objectsToLookup, sids);

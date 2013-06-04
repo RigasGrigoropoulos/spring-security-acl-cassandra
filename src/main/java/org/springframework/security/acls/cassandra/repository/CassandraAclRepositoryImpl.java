@@ -33,7 +33,6 @@ import me.prettyprint.cassandra.service.template.ThriftColumnFamilyTemplate;
 import me.prettyprint.hector.api.Cluster;
 import me.prettyprint.hector.api.Keyspace;
 import me.prettyprint.hector.api.ResultStatus;
-import me.prettyprint.hector.api.beans.AbstractComposite.ComponentEquality;
 import me.prettyprint.hector.api.beans.Composite;
 import me.prettyprint.hector.api.factory.HFactory;
 import me.prettyprint.hector.api.mutation.MutationResult;
@@ -56,6 +55,7 @@ public class CassandraAclRepositoryImpl implements CassandraAclRepository {
 
 	private static final String objectClass = "objectClass";
 	private static final String parentObjectId = "parentObjectId";
+	private static final String parentObjectClass = "parentObjectClass";
 	private static final String ownerSid = "ownerSid";
 	private static final String ownerIsPrincipal = "ownerIsPrincipal";
 	private static final String entriesInheriting = "entriesInheriting";
@@ -67,7 +67,7 @@ public class CassandraAclRepositoryImpl implements CassandraAclRepository {
 	private static final String auditFailure = "auditFailure";
 
 	private final Map<String, Composite> aoi_column_names;
-	private final static List<String> ae_column_names = Arrays.asList(new String[] { aceOrder, sidIsPrincipal, granting, mask, auditSuccess, auditFailure });
+	private final List<String> ae_column_names = Arrays.asList(new String[] { aceOrder, sidIsPrincipal, granting, mask, auditSuccess, auditFailure });
  
 	private ColumnFamilyTemplate<Composite, Composite> template;
 	private final Keyspace ksp;
@@ -79,6 +79,7 @@ public class CassandraAclRepositoryImpl implements CassandraAclRepository {
 		aoi_column_names = new HashMap<String, Composite>();
 		aoi_column_names.put(objectClass, createCompositeKey(objectClass));
 		aoi_column_names.put(parentObjectId, createCompositeKey(parentObjectId));
+		aoi_column_names.put(parentObjectClass, createCompositeKey(parentObjectClass));
 		aoi_column_names.put(ownerSid, createCompositeKey(ownerSid));
 		aoi_column_names.put(ownerIsPrincipal, createCompositeKey(ownerIsPrincipal));
 		aoi_column_names.put(entriesInheriting, createCompositeKey(entriesInheriting));
@@ -274,6 +275,8 @@ public class CassandraAclRepositoryImpl implements CassandraAclRepository {
 		if (aoi.getParentObjectId() != null && !aoi.getParentObjectId().isEmpty()) {
 			mutator.addInsertion(aclId, ACL_CF, HFactory.createColumn(aoi_column_names.get(parentObjectId),
 					aoi.getParentObjectId(), new CompositeSerializer(), StringSerializer.get()));
+			mutator.addInsertion(aclId, ACL_CF, HFactory.createColumn(aoi_column_names.get(parentObjectClass),
+					aoi.getParentObjectClass(), new CompositeSerializer(), StringSerializer.get()));
 		}
 	}
 
@@ -335,6 +338,8 @@ public class CassandraAclRepositoryImpl implements CassandraAclRepository {
 							aoi.setOwnerPrincipal(results.getBoolean(columnName));
 						} else if (firstColumnNameComponent.equals(parentObjectId)) {
 							aoi.setParentObjectId(results.getString(columnName));
+						} else if (firstColumnNameComponent.equals(parentObjectClass)) {
+							aoi.setParentObjectClass(results.getString(columnName));
 						}
 					} else {
 						String sid = firstColumnNameComponent;

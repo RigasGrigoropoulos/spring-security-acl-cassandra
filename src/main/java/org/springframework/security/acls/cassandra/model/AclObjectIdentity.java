@@ -21,6 +21,7 @@ public class AclObjectIdentity {
 	private String id;
 	private String objectClass;
 	private String parentObjectId;
+	private String parentObjectClass;
 	private String ownerId;
 	private boolean ownerPrincipal;
 	private boolean entriesInheriting;
@@ -80,12 +81,21 @@ public class AclObjectIdentity {
 		this.entriesInheriting = entriesInheriting;
 	}
 	
+	public String getParentObjectClass() {
+		return parentObjectClass;
+	}
+
+	public void setParentObjectClass(String parentObjectClass) {
+		this.parentObjectClass = parentObjectClass;
+	}
+
 	@Override
 	public String toString() {
 		StringBuilder sb = new StringBuilder();
 		sb.append("AclObjectIdentity [").append("id: ").append(id);
 		sb.append(", objectClass: ").append(objectClass);
 		sb.append(", parentObjectId: ").append(parentObjectId);
+		sb.append(", parentObjectClass: ").append(parentObjectClass);
 		sb.append(", ownerId: ").append(ownerId);
 		sb.append(", ownerPrincipal: ").append(ownerPrincipal);
 		sb.append(", entriesInheriting: ").append(entriesInheriting).append("]");
