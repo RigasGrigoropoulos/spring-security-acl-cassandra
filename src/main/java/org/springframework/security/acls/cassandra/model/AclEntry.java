@@ -16,9 +16,8 @@ package org.springframework.security.acls.cassandra.model;
 
 public class AclEntry {
 
-	// id pattern: objectIdentity_:_sid
+	// id pattern: objectClass:objectId:sid
 	private String id;
-	private String objectIdentity;
 	private String sid;
 	private boolean sidPrincipal;
 	private int order;
@@ -27,20 +26,13 @@ public class AclEntry {
 	private boolean auditSuccess;
 	private boolean auditFailure;
 
+
 	public String getId() {
 		return id;
 	}
 
 	public void setId(String id) {
 		this.id = id;
-	}
-
-	public String getObjectIdentity() {
-		return objectIdentity;
-	}
-
-	public void setObjectIdentity(String objectIdentity) {
-		this.objectIdentity = objectIdentity;
 	}
 
 	public boolean isSidPrincipal() {
@@ -103,7 +95,6 @@ public class AclEntry {
 	public String toString() {
 		StringBuilder sb = new StringBuilder();
 		sb.append("AclEntry [").append("id: ").append(id);
-		sb.append(", objectIdentity: ").append(objectIdentity);
 		sb.append(", sid: ").append(sid);
 		sb.append(", sidPrincipal: ").append(sidPrincipal);
 		sb.append(", order: ").append(order);

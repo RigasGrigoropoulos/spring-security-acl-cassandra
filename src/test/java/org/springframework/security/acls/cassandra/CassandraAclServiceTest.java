@@ -36,10 +36,16 @@ import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.acls.cassandra.model.AclEntry;
 import org.springframework.security.acls.domain.AccessControlEntryImpl;
+import org.springframework.security.acls.domain.BasePermission;
 import org.springframework.security.acls.domain.ObjectIdentityImpl;
 import org.springframework.security.acls.domain.PrincipalSid;
 import org.springframework.security.acls.model.Acl;
-import org.springframework.security.acls.model.AclService;
+import org.springframework.security.acls.model.MutableAcl;
+import org.springframework.security.acls.model.MutableAclService;
+import org.springframework.security.acls.model.ObjectIdentity;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
@@ -50,7 +56,7 @@ public class CassandraAclServiceTest {
 	private static final String KEYSPACE = "SpringSecurityAclCassandra";
 	private static final String ACL_CF = "AclColumnFamily";
 	
-	private static final String COLUMN_NAME_TOKEN_SEPERATOR = "_:_";
+	private static final String COLUMN_NAME_TOKEN_SEPERATOR = ":";
 	
 	private static final String objectClass = "objectClass";
 	private static final String parentObjectId = "parentObjectId";
@@ -70,7 +76,7 @@ public class CassandraAclServiceTest {
 	private static final String objectIdentity = AclEntry.class.getName() + COLUMN_NAME_TOKEN_SEPERATOR + "123";
 	
 	@Autowired
-	private AclService service;
+	private MutableAclService service;
 	
 	@Autowired
 	private Cluster cluster;
@@ -101,6 +107,7 @@ public class CassandraAclServiceTest {
 				
 		addAclForObject(objectIdentity);
 		addAceForSid(sid1, objectIdentity);
+		SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(sid1, "password", Arrays.asList(new SimpleGrantedAuthority[] { new SimpleGrantedAuthority("ROLE_ADMIN") })));
 	}
 
 	@After
@@ -110,11 +117,16 @@ public class CassandraAclServiceTest {
 
 	@Test
 	public void testReadAclById() {
-		Acl acl = service.readAclById(new ObjectIdentityImpl(AclEntry.class.getName(), objectIdentity));
+		ObjectIdentity oi = new ObjectIdentityImpl(AclEntry.class.getName(), "123");
+		MutableAcl newAcl = service.createAcl(oi);
+		newAcl.insertAce(0, BasePermission.READ, new PrincipalSid(sid1), true);
+		newAcl = service.updateAcl(newAcl);
+		
+		Acl acl = service.readAclById(new ObjectIdentityImpl(AclEntry.class.getName(), "123"));
 		assertEquals(new PrincipalSid(sid1), acl.getOwner());
 		assertEquals(false, acl.isEntriesInheriting());
 		assertEquals(null, acl.getParentAcl());
-		assertEquals(objectIdentity, acl.getObjectIdentity().getIdentifier());
+		assertEquals("123", acl.getObjectIdentity().getIdentifier());
 		assertEquals(AclEntry.class.getName(), acl.getObjectIdentity().getType());
 		assertEquals(acl, acl.getEntries().get(0).getAcl());
 		assertEquals(objectIdentity + COLUMN_NAME_TOKEN_SEPERATOR + sid1, acl.getEntries().get(0).getId());

@@ -21,7 +21,7 @@
 	<context:property-placeholder location="classpath:service.properties" />
 
 	<bean id="aclService"
-		class="org.springframework.security.acls.cassandra.CassandraAclService">
+		class="org.springframework.security.acls.cassandra.CassandraMutableAclService">
 		<constructor-arg ref="aclRepository" />
 		<constructor-arg type="org.springframework.security.acls.model.AclCache">
 			<null/>

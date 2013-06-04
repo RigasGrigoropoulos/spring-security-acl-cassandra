@@ -23,13 +23,13 @@ import org.springframework.security.acls.cassandra.model.AclObjectIdentity;
 
 public interface CassandraAclRepository {
 
-	public Map<AclObjectIdentity, List<AclEntry>> findAcls(List<String> objectIdsToLookup, List<String> sids);
+	public Map<AclObjectIdentity, List<AclEntry>> findAcls(List<AclObjectIdentity> objectIdsToLookup, List<String> sids);
 
-	public AclObjectIdentity findAclObjectIdentity(String objectId);
+	public AclObjectIdentity findAclObjectIdentity(AclObjectIdentity objectId);
 	
-	public List<AclObjectIdentity> findAclObjectIdentityChildren(String objectId);
+	public List<AclObjectIdentity> findAclObjectIdentityChildren(AclObjectIdentity objectId);
 
-	public void deleteAcls(List<String> objectIdsToDelete);
+	public void deleteAcls(List<AclObjectIdentity> objectIdsToDelete);
 
 	public void saveAcl(AclObjectIdentity aoi);	
 	

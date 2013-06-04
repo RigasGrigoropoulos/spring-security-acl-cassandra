@@ -70,7 +70,7 @@ public class CassandraAclService implements AclService {
 
 	public List<ObjectIdentity> findChildren(ObjectIdentity parentIdentity) {
 		List<ObjectIdentity> result = null;		
-		List<AclObjectIdentity> children = aclRepository.findAclObjectIdentityChildren((String) parentIdentity.getIdentifier());
+		List<AclObjectIdentity> children = aclRepository.findAclObjectIdentityChildren(new AclObjectIdentity(parentIdentity));
 		if (children != null && !children.isEmpty()) {
 			result = new ArrayList<ObjectIdentity>();
 			for (AclObjectIdentity entry : children) {
@@ -148,32 +148,36 @@ public class CassandraAclService implements AclService {
 	}
 
 	private Map<ObjectIdentity, Acl> doLookup(List<ObjectIdentity> objects, List<Sid> sids) {
-		List<String> objectIds = new ArrayList<String>();
-		List<String> sidIds = new ArrayList<String>();
+		Map<ObjectIdentity, Acl> result = new HashMap<ObjectIdentity, Acl>();
+		
+		if (objects != null && !objects.isEmpty()) {
+			List<AclObjectIdentity> objectIds = new ArrayList<AclObjectIdentity>();
+			List<String> sidIds = new ArrayList<String>();
 
-		for (ObjectIdentity objId : objects) {
-			objectIds.add((String) objId.getIdentifier());
-		}
+			for (ObjectIdentity objId : objects) {
+				objectIds.add(new AclObjectIdentity(objId));
+			}
 
-		if (sids != null) {
-			for (Sid sid : sids) {
-				if (sid instanceof PrincipalSid) {
-					sidIds.add(((PrincipalSid) sid).getPrincipal());
-				} else if (sid instanceof GrantedAuthoritySid) {
-					sidIds.add(((GrantedAuthoritySid) sid).getGrantedAuthority());
+			if (sids != null) {
+				for (Sid sid : sids) {
+					if (sid instanceof PrincipalSid) {
+						sidIds.add(((PrincipalSid) sid).getPrincipal());
+					} else if (sid instanceof GrantedAuthoritySid) {
+						sidIds.add(((GrantedAuthoritySid) sid).getGrantedAuthority());
+					}
 				}
 			}
-		}
 
-		Map<AclObjectIdentity, List<AclEntry>> aeList = aclRepository.findAcls(objectIds, sidIds);
-		Map<ObjectIdentity, Acl> result = new HashMap<ObjectIdentity, Acl>();
-		Map<ObjectIdentity, Acl> parentAcls = lookupParents(aeList.keySet(), sids);
+			Map<AclObjectIdentity, List<AclEntry>> aeList = aclRepository.findAcls(objectIds, sidIds);		
+			Map<ObjectIdentity, Acl> parentAcls = lookupParents(aeList.keySet(), sids);
 
-		for (Entry<AclObjectIdentity, List<AclEntry>> entry : aeList.entrySet()) {
-			Acl parentAcl = parentAcls.get(entry.getKey().getParentObjectId());
-			AclImpl loadedAcl = convert(entry.getKey(), entry.getValue(), sids, parentAcl);
-			result.put(loadedAcl.getObjectIdentity(), loadedAcl);
+			for (Entry<AclObjectIdentity, List<AclEntry>> entry : aeList.entrySet()) {
+				Acl parentAcl = parentAcls.get(entry.getKey().getParentObjectId());
+				AclImpl loadedAcl = convert(entry.getKey(), entry.getValue(), sids, parentAcl);
+				result.put(loadedAcl.getObjectIdentity(), loadedAcl);
+			}
 		}
+		
 		return result;
 	}
 

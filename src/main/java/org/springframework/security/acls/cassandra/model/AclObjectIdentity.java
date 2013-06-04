@@ -14,9 +14,10 @@
  */
 package org.springframework.security.acls.cassandra.model;
 
+import org.springframework.security.acls.model.ObjectIdentity;
+
 public class AclObjectIdentity {
 
-	// id pattern: objectClass_:_objectId
 	private String id;
 	private String objectClass;
 	private String parentObjectId;
@@ -24,6 +25,13 @@ public class AclObjectIdentity {
 	private boolean ownerPrincipal;
 	private boolean entriesInheriting;
 
+	public AclObjectIdentity() {}
+	
+	public AclObjectIdentity(ObjectIdentity objectIdentity) {
+		objectClass = objectIdentity.getType();
+		id = (String) objectIdentity.getIdentifier();
+	}
+	
 	public String getId() {
 		return id;
 	}

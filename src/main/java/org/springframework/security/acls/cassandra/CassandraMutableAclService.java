@@ -56,11 +56,6 @@ public class CassandraMutableAclService extends CassandraAclService implements M
 		}
 		Assert.notNull(objectIdentity, "Object Identity required");
 
-		// Check this object identity hasn't already been persisted
-		if (aclRepository.findAclObjectIdentity((String) objectIdentity.getIdentifier()) != null) {
-			throw new AlreadyExistsException("Object identity '" + objectIdentity + "' already exists");
-		}
-
 		// Need to retrieve the current principal, in order to know who "owns"
 		// this ACL (can be changed later on)
 		Authentication auth = SecurityContextHolder.getContext().getAuthentication();
@@ -71,6 +66,8 @@ public class CassandraMutableAclService extends CassandraAclService implements M
 		newAoi.setOwnerPrincipal(true);
 		newAoi.setObjectClass(objectIdentity.getType());
 		newAoi.setId((String) objectIdentity.getIdentifier());
+		newAoi.setEntriesInheriting(false);
+		newAoi.setParentObjectId("");
 		aclRepository.saveAcl(newAoi);
 
 		// Retrieve the ACL via superclass (ensures cache registration, proper
@@ -92,13 +89,14 @@ public class CassandraMutableAclService extends CassandraAclService implements M
 		Assert.notNull(objectIdentity.getIdentifier(), "Object Identity doesn't provide an identifier");
 
 		List<ObjectIdentity> objectsToDelete = Arrays.asList(new ObjectIdentity[] { objectIdentity });
-		List<String> objIdsToDelete = new ArrayList<String>();
+		List<AclObjectIdentity> objIdsToDelete = new ArrayList<AclObjectIdentity>();
 
 		List<ObjectIdentity> children = findChildren(objectIdentity);
 		if (deleteChildren) {
 			while (children != null) {
 				objectsToDelete.addAll(children);
 				children = findChildren(objectIdentity);
+				// FIXME: this does not work
 			}			
 		} else if (children != null && !children.isEmpty()) {
 			throw new ChildrenExistException("Cannot delete '" + objectIdentity + "' (has " + children.size()
@@ -106,7 +104,7 @@ public class CassandraMutableAclService extends CassandraAclService implements M
 		}
 
 		for (ObjectIdentity objId : objectsToDelete) {
-			objIdsToDelete.add((String) objId.getIdentifier());
+			objIdsToDelete.add(new AclObjectIdentity(objId));
 		}
 		aclRepository.deleteAcls(objIdsToDelete);
 
@@ -127,11 +125,6 @@ public class CassandraMutableAclService extends CassandraAclService implements M
 			LOG.debug("BEGIN updateAcl: acl: " + acl);
 		}
 		Assert.notNull(acl.getId(), "Object Identity doesn't provide an identifier");
-
-		// Check this object identity is already persisted
-		if (aclRepository.findAclObjectIdentity((String) acl.getId()) == null) {
-			throw new NotFoundException("Object identity '" + (String) acl.getId() + "' does not exist");
-		}
 
 		aclRepository.updateAcl(convertToAclObjectIdentity(acl), convertToAclEntries(acl));
 
@@ -157,7 +150,6 @@ public class CassandraMutableAclService extends CassandraAclService implements M
 			ae.setGranting(entry.isGranting());
 			ae.setId((String) entry.getId());
 			ae.setMask(entry.getPermission().getMask());
-			ae.setObjectIdentity((String) acl.getObjectIdentity().getIdentifier());
 			ae.setOrder(i);
 			
 			if (acl.getOwner() instanceof PrincipalSid) {
@@ -194,7 +186,7 @@ public class CassandraMutableAclService extends CassandraAclService implements M
 			result.setOwnerId(((GrantedAuthoritySid) acl.getOwner()).getGrantedAuthority());
 			result.setOwnerPrincipal(false);
 		}
-		result.setParentObjectId((String) acl.getParentAcl().getObjectIdentity().getIdentifier());
+		result.setParentObjectId(acl.getParentAcl() != null ? (String) acl.getParentAcl().getObjectIdentity().getIdentifier() : "");
 
 		return result;
 	}
