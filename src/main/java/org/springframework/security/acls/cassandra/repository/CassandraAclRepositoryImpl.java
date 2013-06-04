@@ -316,8 +316,7 @@ public class CassandraAclRepositoryImpl implements CassandraAclRepository {
 		return entry;
 	}
 
-	private class MyColumnFamilyRowMapper implements
-			ColumnFamilyRowMapper<Composite, Composite, Entry<AclObjectIdentity, List<AclEntry>>> {
+	private class MyColumnFamilyRowMapper implements ColumnFamilyRowMapper<Composite, Composite, Entry<AclObjectIdentity, List<AclEntry>>> {
 
 		public Entry<AclObjectIdentity, List<AclEntry>> mapRow(ColumnFamilyResult<Composite, Composite> results) {
 			if (results.hasResults()) {

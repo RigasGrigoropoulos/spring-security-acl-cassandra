@@ -14,6 +14,11 @@
  */
 package org.springframework.security.acls.cassandra.model;
 
+import org.springframework.security.acls.domain.GrantedAuthoritySid;
+import org.springframework.security.acls.domain.PrincipalSid;
+import org.springframework.security.acls.model.AccessControlEntry;
+import org.springframework.security.acls.model.AuditableAccessControlEntry;
+
 public class AclEntry {
 
 	// id pattern: objectClass:objectId:sid
@@ -26,7 +31,31 @@ public class AclEntry {
 	private boolean auditSuccess;
 	private boolean auditFailure;
 
-
+	public AclEntry() {}
+	
+	public AclEntry(AccessControlEntry ace) {
+		granting = ace.isGranting();
+		id = (String) ace.getId();
+		mask = ace.getPermission().getMask();
+		order = ace.getAcl().getEntries().indexOf(ace);
+		
+		if (ace.getAcl().getOwner() instanceof PrincipalSid) {
+			sid = ((PrincipalSid) ace.getSid()).getPrincipal();
+			sidPrincipal = true;
+		} else if (ace.getAcl().getOwner() instanceof GrantedAuthoritySid) {
+			sid = ((GrantedAuthoritySid) ace.getSid()).getGrantedAuthority();
+			sidPrincipal = false;
+		}
+		
+		if (ace instanceof AuditableAccessControlEntry) {
+			auditSuccess = ((AuditableAccessControlEntry) ace).isAuditFailure();
+			auditFailure =  ((AuditableAccessControlEntry) ace).isAuditSuccess();
+		} else {
+			auditSuccess = false;
+			auditFailure = false;
+		}
+	}
+	
 	public String getId() {
 		return id;
 	}

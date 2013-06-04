@@ -14,7 +14,10 @@
  */
 package org.springframework.security.acls.cassandra.model;
 
+import org.springframework.security.acls.domain.GrantedAuthoritySid;
 import org.springframework.security.acls.domain.ObjectIdentityImpl;
+import org.springframework.security.acls.domain.PrincipalSid;
+import org.springframework.security.acls.model.Acl;
 import org.springframework.security.acls.model.ObjectIdentity;
 import org.springframework.util.Assert;
 
@@ -31,9 +34,27 @@ public class AclObjectIdentity {
 	public AclObjectIdentity() {}
 	
 	public AclObjectIdentity(ObjectIdentity objectIdentity) {
-		Assert.notNull(objectIdentity, "Object identity required");
+		Assert.notNull(objectIdentity, "ObjectIdentity required");
 		objectClass = objectIdentity.getType();
 		id = (String) objectIdentity.getIdentifier();
+	}
+	
+	public AclObjectIdentity(Acl acl) {
+		Assert.notNull(acl, "Acl required");		
+		entriesInheriting = acl.isEntriesInheriting();
+		id = (String) acl.getObjectIdentity().getIdentifier();
+		objectClass = acl.getObjectIdentity().getType();
+		
+		if (acl.getOwner() instanceof PrincipalSid) {
+			ownerId = ((PrincipalSid) acl.getOwner()).getPrincipal();
+			ownerPrincipal = true;
+		} else if (acl.getOwner() instanceof GrantedAuthoritySid) {
+			ownerId = ((GrantedAuthoritySid) acl.getOwner()).getGrantedAuthority();
+			ownerPrincipal = false;
+		}
+	
+		parentObjectId = acl.getParentAcl() != null ? (String) acl.getParentAcl().getObjectIdentity().getIdentifier() : "";
+		parentObjectClass = acl.getParentAcl() != null ? (String) acl.getParentAcl().getObjectIdentity().getType() : "";
 	}
 	
 	public String getId() {
