@@ -26,13 +26,11 @@ import org.springframework.security.acls.cassandra.repository.CassandraAclReposi
 import org.springframework.security.acls.cassandra.repository.exceptions.AclAlreadyExistsException;
 import org.springframework.security.acls.cassandra.repository.exceptions.AclNotFoundException;
 import org.springframework.security.acls.domain.AclAuthorizationStrategy;
-import org.springframework.security.acls.domain.GrantedAuthoritySid;
 import org.springframework.security.acls.domain.PrincipalSid;
 import org.springframework.security.acls.model.AccessControlEntry;
 import org.springframework.security.acls.model.Acl;
 import org.springframework.security.acls.model.AclCache;
 import org.springframework.security.acls.model.AlreadyExistsException;
-import org.springframework.security.acls.model.AuditableAccessControlEntry;
 import org.springframework.security.acls.model.ChildrenExistException;
 import org.springframework.security.acls.model.MutableAcl;
 import org.springframework.security.acls.model.MutableAclService;
@@ -64,21 +62,18 @@ public class CassandraMutableAclService extends CassandraAclService implements M
 		Authentication auth = SecurityContextHolder.getContext().getAuthentication();
 		PrincipalSid sid = new PrincipalSid(auth);
 
-		AclObjectIdentity newAoi = new AclObjectIdentity();
+		AclObjectIdentity newAoi = new AclObjectIdentity(objectIdentity);
 		newAoi.setOwnerId(sid.getPrincipal());
 		newAoi.setOwnerPrincipal(true);
-		newAoi.setObjectClass(objectIdentity.getType());
-		newAoi.setId((String) objectIdentity.getIdentifier());
 		newAoi.setEntriesInheriting(false);
-		newAoi.setParentObjectId("");
+		
 		try {
 			aclRepository.saveAcl(newAoi);
 		} catch (AclAlreadyExistsException e) {
 			throw new AlreadyExistsException(e.getMessage(), e);
 		}		
 
-		// Retrieve the ACL via superclass (ensures cache registration, proper
-		// retrieval etc)
+		// Retrieve the ACL via superclass (ensures cache registration, proper retrieval etc)
 		Acl acl = readAclById(objectIdentity);
 		Assert.isInstanceOf(MutableAcl.class, acl, "MutableAcl should be been returned");
 
@@ -138,7 +133,7 @@ public class CassandraMutableAclService extends CassandraAclService implements M
 		}		
 
 		try {
-			aclRepository.updateAcl(convertToAclObjectIdentity(acl), convertToAclEntries(acl));
+			aclRepository.updateAcl(new AclObjectIdentity(acl), convertToAclEntries(acl));
 		} catch (AclNotFoundException e) {
 			throw new NotFoundException(e.getMessage(), e);
 		}		
@@ -146,8 +141,7 @@ public class CassandraMutableAclService extends CassandraAclService implements M
 		// Clear the cache, including children
 		clearCacheIncludingChildren(acl.getObjectIdentity());
 		
-		// Retrieve the ACL via superclass (ensures cache registration, proper
-		// retrieval etc)
+		// Retrieve the ACL via superclass (ensures cache registration, proper retrieval etc)
 		MutableAcl result = (MutableAcl) readAclById(acl.getObjectIdentity());
 		
 		if (LOG.isDebugEnabled()) {
@@ -159,51 +153,9 @@ public class CassandraMutableAclService extends CassandraAclService implements M
 	private List<AclEntry> convertToAclEntries(Acl acl) {
 		List<AclEntry> result = new ArrayList<AclEntry>();
 		
-		for (int i = 0; i < acl.getEntries().size(); i++ ) {
-			AccessControlEntry entry = acl.getEntries().get(i);
-			AclEntry ae = new AclEntry();
-			ae.setGranting(entry.isGranting());
-			ae.setId((String) entry.getId());
-			ae.setMask(entry.getPermission().getMask());
-			ae.setOrder(i);
-			
-			if (acl.getOwner() instanceof PrincipalSid) {
-				ae.setSid(((PrincipalSid) entry.getSid()).getPrincipal());
-				ae.setSidPrincipal(true);
-			} else if (acl.getOwner() instanceof GrantedAuthoritySid) {
-				ae.setSid(((GrantedAuthoritySid)entry.getSid()).getGrantedAuthority());
-				ae.setSidPrincipal(false);
-			}
-			
-			if (entry instanceof AuditableAccessControlEntry) {
-				ae.setAuditFailure(((AuditableAccessControlEntry) entry).isAuditFailure());
-				ae.setAuditSuccess(((AuditableAccessControlEntry) entry).isAuditSuccess());
-			} else {
-				ae.setAuditFailure(false);
-				ae.setAuditSuccess(false);
-			}
-			
-			result.add(ae);
-		}
-		
-		return result;
-	}
-
-	private AclObjectIdentity convertToAclObjectIdentity(Acl acl) {
-		AclObjectIdentity result = new AclObjectIdentity();
-		result.setEntriesInheriting(acl.isEntriesInheriting());
-		result.setId((String) acl.getObjectIdentity().getIdentifier());
-		result.setObjectClass(acl.getObjectIdentity().getType());
-		if (acl.getOwner() instanceof PrincipalSid) {
-			result.setOwnerId(((PrincipalSid) acl.getOwner()).getPrincipal());
-			result.setOwnerPrincipal(true);
-		} else if (acl.getOwner() instanceof GrantedAuthoritySid) {
-			result.setOwnerId(((GrantedAuthoritySid) acl.getOwner()).getGrantedAuthority());
-			result.setOwnerPrincipal(false);
-		}
-		result.setParentObjectId(acl.getParentAcl() != null ? (String) acl.getParentAcl().getObjectIdentity().getIdentifier() : "");
-		result.setParentObjectClass(acl.getParentAcl() != null ? (String) acl.getParentAcl().getObjectIdentity().getType() : "");
-
+		for (AccessControlEntry entry : acl.getEntries()) {
+			result.add(new AclEntry(entry));
+		}		
 		return result;
 	}
 
