@@ -69,6 +69,12 @@ public class CassandraAclService implements AclService {
 	}
 
 	public List<ObjectIdentity> findChildren(ObjectIdentity parentIdentity) {
+		Assert.notNull(parentIdentity, "Object to lookup required");
+		
+		if (LOG.isDebugEnabled()) {
+			LOG.debug("BEGIN findChildren: parentIdentity: " + parentIdentity );
+		}
+		
 		List<ObjectIdentity> result = null;		
 		List<AclObjectIdentity> children = aclRepository.findAclObjectIdentityChildren(new AclObjectIdentity(parentIdentity));
 		if (children != null && !children.isEmpty()) {
@@ -76,6 +82,10 @@ public class CassandraAclService implements AclService {
 			for (AclObjectIdentity entry : children) {
 				result.add(new ObjectIdentityImpl(entry.getObjectClass(), entry.getId()));
 			}
+		}
+		
+		if (LOG.isDebugEnabled()) {
+			LOG.debug("END findChildren: children: " + result);
 		}
 		return result;
 	}

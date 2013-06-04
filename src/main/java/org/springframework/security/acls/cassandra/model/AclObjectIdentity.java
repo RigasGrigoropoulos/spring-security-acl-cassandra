@@ -15,6 +15,7 @@
 package org.springframework.security.acls.cassandra.model;
 
 import org.springframework.security.acls.model.ObjectIdentity;
+import org.springframework.util.Assert;
 
 public class AclObjectIdentity {
 
@@ -29,6 +30,7 @@ public class AclObjectIdentity {
 	public AclObjectIdentity() {}
 	
 	public AclObjectIdentity(ObjectIdentity objectIdentity) {
+		Assert.notNull(objectIdentity, "Object identity required");
 		objectClass = objectIdentity.getType();
 		id = (String) objectIdentity.getIdentifier();
 	}

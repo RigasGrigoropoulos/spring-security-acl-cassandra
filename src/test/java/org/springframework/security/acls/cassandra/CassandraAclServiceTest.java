@@ -16,6 +16,7 @@ package org.springframework.security.acls.cassandra;
 
 import static org.junit.Assert.*;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -242,5 +243,92 @@ public class CassandraAclServiceTest {
 		service.deleteAcl(oi, false);	
 		service.updateAcl(acl);
 	}
+	
+	@Test
+	@ExpectedException(IllegalArgumentException.class)
+	public void testFindChildrenNullAcl() {
+		service.findChildren(null);
+	}
+	
+	@Test
+	public void testFindChildrenAclNotExisting() {
+		ObjectIdentity oi = createDefaultTestOI();
+		List<ObjectIdentity> result = service.findChildren(oi);
+		assertNull(result);
+	}
+	
+	@Test
+	@ExpectedException(IllegalArgumentException.class)
+	public void testReadAclByIdNullAcl() {
+		service.readAclById(null);
+	}
+	
+	@Test
+	@ExpectedException(NotFoundException.class)
+	public void testReadAclByIdAclNotExisting() {
+		ObjectIdentity oi = createDefaultTestOI();
+		service.readAclById(oi);
+	}
+	
+	@Test
+	@ExpectedException(IllegalArgumentException.class)
+	public void testReadAclByIdWithSidFilteringNullAcl() {
+		service.readAclById(null, null);
+	}
+	
+	@Test
+	@ExpectedException(NotFoundException.class)
+	public void testReadAclByIdWithSidFilteringAclNotExisting() {
+		ObjectIdentity oi = createDefaultTestOI();
+		service.readAclById(oi);
+	}
+	
+	@Test
+	@ExpectedException(IllegalArgumentException.class)
+	public void testReadAclsByIdNullAclList() {
+		service.readAclsById(null);
+	}
+	
+	@Test
+	@ExpectedException(IllegalArgumentException.class)
+	public void testReadAclsByIdEmptyAclList() {
+		service.readAclsById(new ArrayList<ObjectIdentity>());
+	}
+	
+	@Test
+	@ExpectedException(NotFoundException.class)
+	public void testReadAclsByIdAclNotExisting() {
+		ObjectIdentity oi = createDefaultTestOI();
+		service.readAclsById(Arrays.asList(new ObjectIdentity[] { oi }));
+	}
+	
+	@Test
+	@ExpectedException(NotFoundException.class)
+	public void testReadAclsByIdOneAclNotExisting() {
+		ObjectIdentity oi1 = createDefaultTestOI();
+		service.createAcl(oi1);
+		ObjectIdentity oi2 = new ObjectIdentityImpl(aoi_class, "invalid");
+		service.readAclsById(Arrays.asList(new ObjectIdentity[] { oi1, oi2 }));
+	}
+	
+	@Test
+	@ExpectedException(IllegalArgumentException.class)
+	public void testReadAclsByIdWithSidFilteringNullAclList() {
+		service.readAclsById(null, null);
+	}
+	
+	@Test
+	@ExpectedException(IllegalArgumentException.class)
+	public void testReadAclsByIdWithSidFilteringEmptyAclList() {
+		service.readAclsById(new ArrayList<ObjectIdentity>(), null);
+	}
+	
+	@Test
+	@ExpectedException(NotFoundException.class)
+	public void testReadAclsByIdWithSidFilteringAclNotExisting() {
+		ObjectIdentity oi = createDefaultTestOI();
+		service.readAclsById(Arrays.asList(new ObjectIdentity[] { oi }), null);
+	}
 
+	
 }

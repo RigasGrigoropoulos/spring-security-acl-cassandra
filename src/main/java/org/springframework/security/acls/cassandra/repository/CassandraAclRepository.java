@@ -19,6 +19,8 @@ import java.util.Map;
 
 import org.springframework.security.acls.cassandra.model.AclEntry;
 import org.springframework.security.acls.cassandra.model.AclObjectIdentity;
+import org.springframework.security.acls.cassandra.repository.exceptions.AclAlreadyExistsException;
+import org.springframework.security.acls.cassandra.repository.exceptions.AclNotFoundException;
 
 
 public interface CassandraAclRepository {
@@ -31,8 +33,8 @@ public interface CassandraAclRepository {
 
 	public void deleteAcls(List<AclObjectIdentity> objectIdsToDelete);
 
-	public void saveAcl(AclObjectIdentity aoi);	
+	public void saveAcl(AclObjectIdentity aoi) throws AclAlreadyExistsException;	
 	
-	public void updateAcl(AclObjectIdentity aoi, List<AclEntry> entries);	
+	public void updateAcl(AclObjectIdentity aoi, List<AclEntry> entries) throws AclNotFoundException;	
 
 }

@@ -23,6 +23,8 @@ import org.apache.commons.logging.LogFactory;
 import org.springframework.security.acls.cassandra.model.AclEntry;
 import org.springframework.security.acls.cassandra.model.AclObjectIdentity;
 import org.springframework.security.acls.cassandra.repository.CassandraAclRepository;
+import org.springframework.security.acls.cassandra.repository.exceptions.AclAlreadyExistsException;
+import org.springframework.security.acls.cassandra.repository.exceptions.AclNotFoundException;
 import org.springframework.security.acls.domain.AclAuthorizationStrategy;
 import org.springframework.security.acls.domain.GrantedAuthoritySid;
 import org.springframework.security.acls.domain.PrincipalSid;
@@ -69,7 +71,11 @@ public class CassandraMutableAclService extends CassandraAclService implements M
 		newAoi.setId((String) objectIdentity.getIdentifier());
 		newAoi.setEntriesInheriting(false);
 		newAoi.setParentObjectId("");
-		aclRepository.saveAcl(newAoi);
+		try {
+			aclRepository.saveAcl(newAoi);
+		} catch (AclAlreadyExistsException e) {
+			throw new AlreadyExistsException(e.getMessage(), e);
+		}		
 
 		// Retrieve the ACL via superclass (ensures cache registration, proper
 		// retrieval etc)
@@ -123,13 +129,19 @@ public class CassandraMutableAclService extends CassandraAclService implements M
 	}
 
 	public MutableAcl updateAcl(MutableAcl acl) throws NotFoundException {
-		Assert.notNull(acl.getId(), "Object Identity doesn't provide an identifier");
+		Assert.notNull(acl, "MutableAcl required");
+		Assert.notNull(acl.getObjectIdentity(), "Object Identity required");
+		Assert.notNull(acl.getObjectIdentity().getIdentifier(), "Object Identity doesn't provide an identifier");
 		
 		if (LOG.isDebugEnabled()) {
 			LOG.debug("BEGIN updateAcl: acl: " + acl);
 		}		
 
-		aclRepository.updateAcl(convertToAclObjectIdentity(acl), convertToAclEntries(acl));
+		try {
+			aclRepository.updateAcl(convertToAclObjectIdentity(acl), convertToAclEntries(acl));
+		} catch (AclNotFoundException e) {
+			throw new NotFoundException(e.getMessage(), e);
+		}		
 
 		// Clear the cache, including children
 		clearCacheIncludingChildren(acl.getObjectIdentity());

@@ -181,7 +181,7 @@ public class CassandraAclRepositoryImpl implements CassandraAclRepository {
 		}
 	}
 
-	public void saveAcl(AclObjectIdentity aoi) {
+	public void saveAcl(AclObjectIdentity aoi) throws AclAlreadyExistsException {
 		assertAclObjectIdentity(aoi);
 		
 		if (LOG.isDebugEnabled()) {
@@ -202,7 +202,7 @@ public class CassandraAclRepositoryImpl implements CassandraAclRepository {
 		}
 	}
 	
-	public void updateAcl(AclObjectIdentity aoi, List<AclEntry> entries) {
+	public void updateAcl(AclObjectIdentity aoi, List<AclEntry> entries) throws AclNotFoundException {
 		assertAclObjectIdentity(aoi);
 		
 		if (LOG.isDebugEnabled()) {
