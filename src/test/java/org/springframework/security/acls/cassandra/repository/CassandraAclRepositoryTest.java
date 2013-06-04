@@ -12,7 +12,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.springframework.security.acls.cassandra;
+package org.springframework.security.acls.cassandra.repository;
 
 import static org.junit.Assert.*;
 
@@ -168,14 +168,18 @@ public class CassandraAclRepositoryTest {
 	}
 	
 	@Test
-	public void testFindAclListEmpty() {		
-		fail("Not implemented yet");
+	@ExpectedException(IllegalArgumentException.class)
+	public void testFindAclListEmpty() {
 	}
 	
 	@Test
 	@ExpectedException(IllegalArgumentException.class)
-	public void testFindNullAcl() {		
-		fail("Not implemented yet");
+	public void testFindNullAclList() {	
+	}
+	
+	@Test
+	@ExpectedException(IllegalArgumentException.class)
+	public void testFindNullAcl() {
 	}
 	
 	@Test
@@ -185,8 +189,7 @@ public class CassandraAclRepositoryTest {
 	
 	@Test
 	@ExpectedException(IllegalArgumentException.class)
-	public void testFindAclWithNullValues() {		
-		fail("Not implemented yet");
+	public void testFindAclWithNullValues() {
 	}
 	
 	@Test
