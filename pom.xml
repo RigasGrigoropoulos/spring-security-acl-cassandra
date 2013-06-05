@@ -37,6 +37,7 @@
 		<junit.version>4.11</junit.version>
 		
 		<skipTests>true</skipTests>
+		<sonar.core.codeCoveragePlugin>jacoco</sonar.core.codeCoveragePlugin>
 	</properties>
 	
 	<build>

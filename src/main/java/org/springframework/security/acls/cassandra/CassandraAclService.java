@@ -121,12 +121,10 @@ public class CassandraAclService implements AclService {
 				boolean aclLoaded = false;
 
 				Acl acl = aclCache.getFromCache(oi);
-				if (acl != null) {
+				if (acl != null && acl.isSidLoaded(sids)) {
 					// Ensure any cached element supports all the requested SIDs
-					if (acl.isSidLoaded(sids)) {
-						result.put(oi, acl);
-						aclLoaded = true;
-					}
+					result.put(oi, acl);
+					aclLoaded = true;
 				}
 				if (aclLoaded) {
 					objectsToLookup.remove(oi);
