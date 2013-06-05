@@ -99,59 +99,47 @@ public class CassandraAclServiceTest {
 	public void tearDown() throws Exception {
 
 	}
-
-	private ObjectIdentity createDefaultTestOI() {
-		ObjectIdentity oi = new ObjectIdentityImpl(aoi_class, aoi_id);
-		return oi;
-	}
-
-	private void assertAcl(ObjectIdentity expected, Acl actual, String owner) {
-		assertEquals(expected.getType(), actual.getObjectIdentity().getType());
-		assertEquals(expected.getIdentifier(), actual.getObjectIdentity().getIdentifier());
-		if (owner.startsWith("ROLE_")) {
-			assertEquals(new GrantedAuthoritySid(owner), actual.getOwner());			
-		} else {
-			assertEquals(new PrincipalSid(owner), actual.getOwner());
-		}		
-	}
 	
-	private void assertAcl(Acl expected, Acl actual) {
-		assertEquals(expected.getObjectIdentity().getType(), actual.getObjectIdentity().getType());
-		assertEquals(expected.getObjectIdentity().getIdentifier(), actual.getObjectIdentity().getIdentifier());
-		assertEquals(expected.getOwner(), actual.getOwner());		
-		assertEquals(expected.isEntriesInheriting(), actual.isEntriesInheriting());		
+	@Test
+	public void testDeleteAclWithChildrenReccursion() {
+		// Create parent
+		ObjectIdentity parentObjectIdentity = createDefaultTestOI();
+		MutableAcl parentMutableAcl = service.createAcl(parentObjectIdentity);
+		assertAcl(parentObjectIdentity, parentMutableAcl, sid1);
 		
-		if (expected.getEntries() != null && actual.getEntries() != null) {
-			assertEquals(expected.getEntries().size(), actual.getEntries().size());
-			for (int i = 0; i < expected.getEntries().size(); i++) {
-				assertAclEntry(expected.getEntries().get(i), actual.getEntries().get(i));
+		// Create 1st level child
+		ObjectIdentity firstChildObjectIdentity = new ObjectIdentityImpl(aoi_class, "456");
+		MutableAcl firstChildMutableAcl = service.createAcl(firstChildObjectIdentity);
+		assertAcl(firstChildObjectIdentity, firstChildMutableAcl, sid1);
+		
+		// Set parent to 1st level child
+		firstChildMutableAcl.setParent(parentMutableAcl);
+		MutableAcl updatedFirstChildMutableAcl = service.updateAcl(firstChildMutableAcl);
+		assertAcl(firstChildMutableAcl, updatedFirstChildMutableAcl);
+		
+		// Create 2nd level child
+		ObjectIdentity secondChildObjectIdentity = new ObjectIdentityImpl(aoi_class, "789");
+		MutableAcl secondChildMutableAcl = service.createAcl(secondChildObjectIdentity);
+		assertAcl(secondChildObjectIdentity, secondChildMutableAcl, sid1);
+		
+		// Set parent to 2nd level child
+		secondChildMutableAcl.setParent(updatedFirstChildMutableAcl);
+		MutableAcl updatedSecondChildMutableAcl = service.updateAcl(secondChildMutableAcl);
+		assertAcl(secondChildMutableAcl, updatedSecondChildMutableAcl);
+		
+		// Delete parent
+		service.deleteAcl(parentObjectIdentity, true);
+		
+		// Check all objects deleted
+		List<ObjectIdentity> deletedObjects = Arrays.asList(new ObjectIdentity[] { parentObjectIdentity, firstChildObjectIdentity, secondChildObjectIdentity });
+		for (ObjectIdentity oi : deletedObjects) {
+			try {
+				service.readAclById(oi);
+				fail("Expected NotFoundException");
+			} catch (NotFoundException e) {
+				// Expected exception
 			}
-		} else {
-			assertEquals(expected.getEntries(), actual.getEntries());
 		}
-		
-		if (expected.getParentAcl() != null && actual.getParentAcl() != null) {
-			assertAcl(expected.getParentAcl(), actual.getParentAcl());
-		} else {
-			assertEquals(expected.getParentAcl(), actual.getParentAcl());
-		}
-	}
-
-	private void assertAclEntry(AccessControlEntry expected, AccessControlEntry actual) {
-		StringBuilder sb = new StringBuilder();
-		sb.append(expected.getAcl().getObjectIdentity().getType()).append(":");
-		sb.append(expected.getAcl().getObjectIdentity().getIdentifier()).append(":");
-		
-		if (expected.getSid() instanceof GrantedAuthoritySid) {
-			sb.append(((GrantedAuthoritySid) expected.getSid()).getGrantedAuthority());
-		} else if (expected.getSid() instanceof PrincipalSid) {
-			sb.append(((PrincipalSid) expected.getSid()).getPrincipal());
-		}
-		
-		assertEquals(sb.toString(), actual.getId());
-		assertEquals(expected.getPermission(), actual.getPermission());
-		assertEquals(expected.getSid(), actual.getSid());
-		assertEquals(expected.isGranting(), actual.isGranting());
 	}
 
 	@Test
@@ -219,14 +207,30 @@ public class CassandraAclServiceTest {
 		assertEquals(1, resultMap.size());
 		assertEquals(1, resultMap.values().iterator().next().getEntries().size());
 		
+		// Test findChildren
+		List<ObjectIdentity> children = service.findChildren(updatedParentMutableAcl.getObjectIdentity());
+		assertNotNull(children);
+		assertEquals(1, children.size());
+		assertEquals(childObjectIdentity, children.get(0));
+			
 		// Test deleteAcl 
-		service.deleteAcl(childObjectIdentity, false);
+		service.deleteAcl(parentObjectIdentity, true);
 		try {
-			childAcl = service.readAclById(childObjectIdentity);
+			service.readAclById(childObjectIdentity);
 			fail("Expected NotFoundException");
 		} catch (NotFoundException e) {
 			// Expected exception
 		}	
+		
+		try {
+			service.readAclById(parentObjectIdentity);
+			fail("Expected NotFoundException");
+		} catch (NotFoundException e) {
+			// Expected exception
+		}	
+		
+		children = service.findChildren(updatedParentMutableAcl.getObjectIdentity());
+		assertNull(children);
 	}
 	
 	@Test
@@ -354,6 +358,60 @@ public class CassandraAclServiceTest {
 	public void testReadAclsByIdWithSidFilteringAclNotExisting() {
 		ObjectIdentity oi = createDefaultTestOI();
 		service.readAclsById(Arrays.asList(new ObjectIdentity[] { oi }), null);
+	}
+
+	private ObjectIdentity createDefaultTestOI() {
+		ObjectIdentity oi = new ObjectIdentityImpl(aoi_class, aoi_id);
+		return oi;
+	}
+
+	private void assertAcl(ObjectIdentity expected, Acl actual, String owner) {
+		assertEquals(expected.getType(), actual.getObjectIdentity().getType());
+		assertEquals(expected.getIdentifier(), actual.getObjectIdentity().getIdentifier());
+		if (owner.startsWith("ROLE_")) {
+			assertEquals(new GrantedAuthoritySid(owner), actual.getOwner());			
+		} else {
+			assertEquals(new PrincipalSid(owner), actual.getOwner());
+		}		
+	}
+
+	private void assertAcl(Acl expected, Acl actual) {
+		assertEquals(expected.getObjectIdentity().getType(), actual.getObjectIdentity().getType());
+		assertEquals(expected.getObjectIdentity().getIdentifier(), actual.getObjectIdentity().getIdentifier());
+		assertEquals(expected.getOwner(), actual.getOwner());		
+		assertEquals(expected.isEntriesInheriting(), actual.isEntriesInheriting());		
+		
+		if (expected.getEntries() != null && actual.getEntries() != null) {
+			assertEquals(expected.getEntries().size(), actual.getEntries().size());
+			for (int i = 0; i < expected.getEntries().size(); i++) {
+				assertAclEntry(expected.getEntries().get(i), actual.getEntries().get(i));
+			}
+		} else {
+			assertEquals(expected.getEntries(), actual.getEntries());
+		}
+		
+		if (expected.getParentAcl() != null && actual.getParentAcl() != null) {
+			assertAcl(expected.getParentAcl(), actual.getParentAcl());
+		} else {
+			assertEquals(expected.getParentAcl(), actual.getParentAcl());
+		}
+	}
+
+	private void assertAclEntry(AccessControlEntry expected, AccessControlEntry actual) {
+		StringBuilder sb = new StringBuilder();
+		sb.append(expected.getAcl().getObjectIdentity().getType()).append(":");
+		sb.append(expected.getAcl().getObjectIdentity().getIdentifier()).append(":");
+		
+		if (expected.getSid() instanceof GrantedAuthoritySid) {
+			sb.append(((GrantedAuthoritySid) expected.getSid()).getGrantedAuthority());
+		} else if (expected.getSid() instanceof PrincipalSid) {
+			sb.append(((PrincipalSid) expected.getSid()).getPrincipal());
+		}
+		
+		assertEquals(sb.toString(), actual.getId());
+		assertEquals(expected.getPermission(), actual.getPermission());
+		assertEquals(expected.getSid(), actual.getSid());
+		assertEquals(expected.isGranting(), actual.isGranting());
 	}
 
 	

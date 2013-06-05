@@ -218,12 +218,28 @@ public class CassandraAclRepositoryTest {
 
 	@Test
 	public void testFindAclChildren() {
-		fail("Not implemented yet");
+		AclObjectIdentity newAoi1 = createDefaultTestAOI();
+		service.saveAcl(newAoi1);
+		
+		AclObjectIdentity newAoi2 = createDefaultTestAOI();
+		newAoi2.setId("456");
+		newAoi2.setParentObjectClass(newAoi1.getObjectClass());
+		newAoi2.setParentObjectId(newAoi1.getId());
+		service.saveAcl(newAoi2);
+		
+		List<AclObjectIdentity> children = service.findAclObjectIdentityChildren(newAoi1);
+		assertNotNull(children);
+		assertEquals(1, children.size());
+		assertEquals(newAoi2.getId(), children.get(0).getId());
+		assertEquals(newAoi2.getObjectClass(), children.get(0).getObjectClass());
 	}
 
 	@Test
 	public void testFindAclChildrenForAclWithNoChildren() {
-		fail("Not implemented yet");
+		AclObjectIdentity newAoi1 = createDefaultTestAOI();
+		service.saveAcl(newAoi1);
+		List<AclObjectIdentity> children = service.findAclObjectIdentityChildren(newAoi1);
+		assertNull(children);
 	}
 
 	@Test
@@ -232,9 +248,8 @@ public class CassandraAclRepositoryTest {
 		newAoi.setId("invalid");
 		newAoi.setObjectClass(aoi_class);
 		newAoi.setOwnerId(sid1);
-		service.findAclObjectIdentityChildren(newAoi);
-		
-		fail("Not implemented yet");
+		List<AclObjectIdentity> children = service.findAclObjectIdentityChildren(newAoi);
+		assertNull(children);
 	}
 
 	@Test

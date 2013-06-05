@@ -15,7 +15,6 @@
 package org.springframework.security.acls.cassandra;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 import org.apache.commons.logging.Log;
@@ -91,16 +90,15 @@ public class CassandraMutableAclService extends CassandraAclService implements M
 			LOG.debug("BEGIN deleteAcl: objectIdentity: " + objectIdentity + ", deleteChildren: " + deleteChildren);
 		}
 
-		List<ObjectIdentity> objectsToDelete = Arrays.asList(new ObjectIdentity[] { objectIdentity });
 		List<AclObjectIdentity> objIdsToDelete = new ArrayList<AclObjectIdentity>();
+		List<ObjectIdentity> objectsToDelete = new ArrayList<ObjectIdentity>();
+		objectsToDelete.add(objectIdentity);		
 
 		List<ObjectIdentity> children = findChildren(objectIdentity);
 		if (deleteChildren) {
-			while (children != null) {
-				objectsToDelete.addAll(children);
-				children = findChildren(objectIdentity);
-				// FIXME: this does not work
-			}			
+			for (ObjectIdentity child : children) {
+				objectsToDelete.addAll(calculateChildrenReccursively(child));			
+			}
 		} else if (children != null && !children.isEmpty()) {
 			throw new ChildrenExistException("Cannot delete '" + objectIdentity + "' (has " + children.size()
 					+ " children)");
@@ -122,7 +120,7 @@ public class CassandraMutableAclService extends CassandraAclService implements M
 			LOG.debug("END deleteAcl");
 		}
 	}
-
+	
 	public MutableAcl updateAcl(MutableAcl acl) throws NotFoundException {
 		Assert.notNull(acl, "MutableAcl required");
 		Assert.notNull(acl.getObjectIdentity(), "Object Identity required");
@@ -148,6 +146,18 @@ public class CassandraMutableAclService extends CassandraAclService implements M
 			LOG.debug("END updateAcl: acl: " + result);
 		}
 		return result;
+	}
+
+	private List<ObjectIdentity> calculateChildrenReccursively(ObjectIdentity rootChild) {
+		List<ObjectIdentity> result = new ArrayList<ObjectIdentity>();
+		result.add(rootChild);
+		List<ObjectIdentity> children = findChildren(rootChild);
+		if (children != null) {
+			for (ObjectIdentity child : children) {
+				result.addAll(calculateChildrenReccursively(child));
+			}
+		}
+		return result;		
 	}
 
 	private List<AclEntry> convertToAclEntries(Acl acl) {
