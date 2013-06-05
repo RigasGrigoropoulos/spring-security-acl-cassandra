@@ -18,6 +18,7 @@ import org.springframework.security.acls.domain.GrantedAuthoritySid;
 import org.springframework.security.acls.domain.PrincipalSid;
 import org.springframework.security.acls.model.AccessControlEntry;
 import org.springframework.security.acls.model.AuditableAccessControlEntry;
+import org.springframework.security.acls.model.Sid;
 
 public class AclEntry {
 
@@ -74,6 +75,16 @@ public class AclEntry {
 
 	public String getSid() {
 		return sid;
+	}
+	
+	public Sid getSidObject() {
+		Sid result = null;
+		if (sidPrincipal) {
+			result = new PrincipalSid(sid);
+		} else {
+			result = new GrantedAuthoritySid(sid);
+		}
+		return result;
 	}
 
 	public void setSid(String sid) {

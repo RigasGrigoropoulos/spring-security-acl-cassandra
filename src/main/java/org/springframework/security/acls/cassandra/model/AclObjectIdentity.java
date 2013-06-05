@@ -19,6 +19,7 @@ import org.springframework.security.acls.domain.ObjectIdentityImpl;
 import org.springframework.security.acls.domain.PrincipalSid;
 import org.springframework.security.acls.model.Acl;
 import org.springframework.security.acls.model.ObjectIdentity;
+import org.springframework.security.acls.model.Sid;
 import org.springframework.util.Assert;
 
 public class AclObjectIdentity {
@@ -92,6 +93,16 @@ public class AclObjectIdentity {
 	public String getOwnerId() {
 		return ownerId;
 	}
+	
+	public Sid getOwnerSId() {
+		Sid result = null;
+		if (ownerPrincipal) {
+			result = new PrincipalSid(ownerId);
+		} else {
+			result = new GrantedAuthoritySid(ownerId);
+		}
+		return result;
+	}
 
 	public void setOwnerId(String ownerId) {
 		this.ownerId = ownerId;
@@ -107,6 +118,13 @@ public class AclObjectIdentity {
 	
 	public String getParentObjectClass() {
 		return parentObjectClass;
+	}
+	
+	public ObjectIdentity getParentObjectIdentity() {
+		if (parentObjectClass != null && parentObjectId != null) {
+			return new ObjectIdentityImpl(parentObjectClass, parentObjectId);
+		}
+		return null;
 	}
 
 	public void setParentObjectClass(String parentObjectClass) {

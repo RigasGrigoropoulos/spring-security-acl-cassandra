@@ -92,6 +92,7 @@ public class CassandraAclServiceTest {
 		SecurityContextHolder.getContext().setAuthentication(
 				new UsernamePasswordAuthenticationToken(sid1, "password", Arrays.asList(new SimpleGrantedAuthority[] { new SimpleGrantedAuthority(
 						"ROLE_ADMIN") })));
+		
 	}
 
 	@After
@@ -220,8 +221,12 @@ public class CassandraAclServiceTest {
 		
 		// Test deleteAcl 
 		service.deleteAcl(childObjectIdentity, false);
-		childAcl = service.readAclById(childObjectIdentity);
-		assertNull(childAcl);
+		try {
+			childAcl = service.readAclById(childObjectIdentity);
+			fail("Expected NotFoundException");
+		} catch (NotFoundException e) {
+			// Expected exception
+		}	
 	}
 	
 	@Test

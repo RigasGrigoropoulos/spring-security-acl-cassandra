@@ -183,7 +183,7 @@ public class CassandraAclService implements AclService {
 			Map<ObjectIdentity, Acl> parentAcls = lookupParents(aeList.keySet(), sids);
 
 			for (Entry<AclObjectIdentity, List<AclEntry>> entry : aeList.entrySet()) {
-				Acl parentAcl = parentAcls.get(entry.getKey().toObjectIdentity());
+				Acl parentAcl = parentAcls.get(entry.getKey().getParentObjectIdentity());
 				AclImpl loadedAcl = convert(entry.getKey(), entry.getValue(), sids, parentAcl);
 				result.put(loadedAcl.getObjectIdentity(), loadedAcl);
 			}
@@ -203,19 +203,12 @@ public class CassandraAclService implements AclService {
 	}
 
 	private AclImpl convert(AclObjectIdentity aclObjectIdentity, List<AclEntry> aclEntries, List<Sid> sids, Acl parentAcl) {
-		Sid owner;
-		if (aclObjectIdentity.isOwnerPrincipal()) {
-			owner = new PrincipalSid(aclObjectIdentity.getOwnerId());
-		} else {
-			owner = new GrantedAuthoritySid(aclObjectIdentity.getOwnerId());
-		}
-
 		AclImpl acl = new AclImpl(aclObjectIdentity.toObjectIdentity(), aclObjectIdentity.getId(),
-				aclAuthorizationStrategy, grantingStrategy, parentAcl, sids, aclObjectIdentity.isEntriesInheriting(), owner);
+				aclAuthorizationStrategy, grantingStrategy, parentAcl, sids, aclObjectIdentity.isEntriesInheriting(), aclObjectIdentity.getOwnerSId());
 
 		List<AccessControlEntry> aces = new ArrayList<AccessControlEntry>();
 		for (AclEntry entry : aclEntries) {
-			AccessControlEntry ace = new AccessControlEntryImpl(entry.getId(), acl, owner, permissionFactory.buildFromMask(entry.getMask()),
+			AccessControlEntry ace = new AccessControlEntryImpl(entry.getId(), acl, entry.getSidObject(), permissionFactory.buildFromMask(entry.getMask()),
 					entry.isGranting(), entry.isAuditSuccess(), entry.isAuditFailure());
 			aces.add(entry.getOrder(), ace);
 		}
