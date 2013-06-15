@@ -204,7 +204,7 @@ public class CassandraAclService implements AclService {
 		AclImpl acl = new AclImpl(aclObjectIdentity.toObjectIdentity(), aclObjectIdentity.getId(),
 				aclAuthorizationStrategy, grantingStrategy, parentAcl, sids, aclObjectIdentity.isEntriesInheriting(), aclObjectIdentity.getOwnerSId());
 
-		List<AccessControlEntry> aces = new ArrayList<AccessControlEntry>();
+		List<AccessControlEntry> aces = new ArrayList<AccessControlEntry>(aclEntries.size());
 		for (AclEntry entry : aclEntries) {
 			AccessControlEntry ace = new AccessControlEntryImpl(entry.getId(), acl, entry.getSidObject(), permissionFactory.buildFromMask(entry.getMask()),
 					entry.isGranting(), entry.isAuditSuccess(), entry.isAuditFailure());

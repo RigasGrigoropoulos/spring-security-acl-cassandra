@@ -91,13 +91,8 @@ public class CassandraAclServiceTest {
 
 		SecurityContextHolder.getContext().setAuthentication(
 				new UsernamePasswordAuthenticationToken(sid1, "password", Arrays.asList(new SimpleGrantedAuthority[] { new SimpleGrantedAuthority(
-						"ROLE_ADMIN") })));
+						ROLE_ADMIN) })));
 		
-	}
-
-	@After
-	public void tearDown() throws Exception {
-
 	}
 	
 	@Test

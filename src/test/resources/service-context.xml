@@ -14,11 +14,28 @@
 	limitations under the License. 
 -->
 <beans xmlns="http://www.springframework.org/schema/beans"
-	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:context="http://www.springframework.org/schema/context"
-	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
-		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.0.xsd">
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:security="http://www.springframework.org/schema/security"
+	xsi:schemaLocation="http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security.xsd
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd">
 
 	<context:property-placeholder location="classpath:service.properties" />
+	
+	<security:global-method-security pre-post-annotations="enabled">
+		<security:expression-handler ref="expressionHandler"/>
+	</security:global-method-security>
+	
+	<bean id="expressionHandler" class="org.springframework.security.access.expression.method.DefaultMethodSecurityExpressionHandler">
+	  	<property name="permissionEvaluator" ref="permissionEvaluator" />
+	</bean>
+	
+	<bean id="permissionEvaluator" class="org.springframework.security.acls.AclPermissionEvaluator">
+		<constructor-arg ref="aclService"/>
+	</bean>
+	
+	<bean id="testService" class="org.springframework.security.acls.test.service.ReportServiceImpl"/>
 
 	<bean id="aclService" class="org.springframework.security.acls.cassandra.CassandraMutableAclService">
 		<constructor-arg ref="aclRepository" />
