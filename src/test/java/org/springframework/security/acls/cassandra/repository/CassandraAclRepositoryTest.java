@@ -28,7 +28,6 @@ import me.prettyprint.hector.api.ddl.ColumnFamilyDefinition;
 import me.prettyprint.hector.api.ddl.KeyspaceDefinition;
 import me.prettyprint.hector.api.factory.HFactory;
 
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -53,7 +52,6 @@ public class CassandraAclRepositoryTest {
 	private static final String ACL_CF = "AclColumnFamily";
 
 	private static final String sid1 = "sid1@system";
-	private static final String sid2 = "sid2@system";
 
 	private static final String aoi_id = "123";
 	private static final String aoi_parent_id = "456";
