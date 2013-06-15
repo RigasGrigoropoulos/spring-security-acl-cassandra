@@ -98,11 +98,45 @@ public class ReportServiceTest {
 	}
 	
 	@Test
+	@ExpectedException(AccessDeniedException.class)
+	public void testDeleteReportAccessDenied() {		
+		Report report = testService.addReport(createReport());		
+		testService.deleteReport(report);
+	}
+	
+	@Test
+	@ExpectedException(AccessDeniedException.class)
+	public void testModifyReportAccessDenied() {		
+		Report report = testService.addReport(createReport());		
+		testService.modifyReport(report);
+	}
+	
+	@Test
 	public void testGetReportSuccess() {		
 		Report report = testService.addReport(createReport());
 		createReadWriteDeleteAcl(sid1, report);
 		report = testService.getReport(report.getId());
 		assertNotNull(report);
+	}
+	
+	@Test
+	public void testDeleteReportSuccess() {		
+		Report report = testService.addReport(createReport());
+		createReadWriteDeleteAcl(sid1, report);
+		testService.deleteReport(report);
+		report = testService.getReport(report.getId());
+		assertNull(report);
+	}
+	
+	@Test
+	public void testModifyReportSuccess() {		
+		Report report = testService.addReport(createReport());
+		createReadWriteDeleteAcl(sid1, report);
+		report.setName("Modified");
+		testService.modifyReport(report);
+		report = testService.getReport(report.getId());
+		assertNotNull(report);
+		assertEquals("Modified", report.getName());
 	}
 	
 	private Report createReport() {

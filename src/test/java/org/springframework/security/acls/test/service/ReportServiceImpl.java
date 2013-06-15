@@ -25,7 +25,7 @@ public class ReportServiceImpl implements ReportService {
 	
 	Map<String, Report> reports = new HashMap<String, Report>();
 
-	@PostAuthorize("hasPermission(returnObject, 'READ')")
+	@PostAuthorize("returnObject == null OR hasPermission(returnObject, 'READ')")
 	public Report getReport(String id) {
 		return reports.get(id);
 	}
