@@ -16,7 +16,6 @@ package org.springframework.security.acls.test;
 
 import static org.junit.Assert.*;
 
-import java.io.Serializable;
 import java.util.Arrays;
 
 import me.prettyprint.cassandra.service.ThriftKsDef;
@@ -36,8 +35,6 @@ import org.springframework.security.acls.domain.ObjectIdentityImpl;
 import org.springframework.security.acls.domain.PrincipalSid;
 import org.springframework.security.acls.model.MutableAcl;
 import org.springframework.security.acls.model.MutableAclService;
-import org.springframework.security.acls.model.ObjectIdentity;
-import org.springframework.security.acls.model.Permission;
 import org.springframework.security.acls.test.service.Report;
 import org.springframework.security.acls.test.service.ReportService;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;

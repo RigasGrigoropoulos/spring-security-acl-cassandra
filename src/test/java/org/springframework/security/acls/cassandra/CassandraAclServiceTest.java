@@ -27,7 +27,6 @@ import me.prettyprint.hector.api.ddl.ColumnFamilyDefinition;
 import me.prettyprint.hector.api.ddl.KeyspaceDefinition;
 import me.prettyprint.hector.api.factory.HFactory;
 
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -163,6 +162,7 @@ public class CassandraAclServiceTest {
 		childMutableAcl.setParent(updatedParentMutableAcl);
 		childMutableAcl.insertAce(0, BasePermission.READ, new PrincipalSid(sid1), true);
 		childMutableAcl.insertAce(1, BasePermission.WRITE, new PrincipalSid(sid2), true);
+		childMutableAcl.insertAce(2, BasePermission.DELETE, new PrincipalSid(sid2), true);
 		MutableAcl updatedchildMutableAcl = service.updateAcl(childMutableAcl);
 		assertAcl(childMutableAcl, updatedchildMutableAcl);
 		
