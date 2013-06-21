@@ -238,7 +238,7 @@ public class CassandraAclRepositoryImpl implements CassandraAclRepository {
 		}
 		
 		// Update ACLs
-		QueryBuilder.delete().all().from(KEYSPACE, ACL_TABLE).where(QueryBuilder.eq("id", aoi.getRowId()));
+		session.execute(QueryBuilder.delete().all().from(KEYSPACE, ACL_TABLE).where(QueryBuilder.eq("id", aoi.getRowId())));
 		if (entries != null) {
 			for (AclEntry entry : entries) {
 				BoundStatement aclBoundStatement = new BoundStatement(insertAclStatement);
