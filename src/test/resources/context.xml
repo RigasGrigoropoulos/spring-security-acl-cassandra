@@ -31,18 +31,19 @@
 
 	<bean id="aclRepository" class="org.springframework.security.acls.cassandra.repository.CassandraAclRepositoryImpl">
 		<constructor-arg ref="cluster" />
+		<constructor-arg value="true" />
 	</bean>
 
-	<bean id="cluster" class="me.prettyprint.cassandra.service.ThriftCluster">
-		<constructor-arg value="${cluster.name}" />
+	<bean id="cluster" class="com.datastax.driver.core.Cluster">
 		<constructor-arg>
-			<bean id="cassandraHostConfigurator" class="me.prettyprint.cassandra.service.CassandraHostConfigurator">
-				<constructor-arg value="${hosts}" />
-				<property name="retryDownedHosts" value="${retryDownedHosts}" />
-				<property name="retryDownedHostsDelayInSeconds" value="${retryDownedHostsDelayInSeconds}" />
-				<property name="autoDiscoverHosts" value="${autoDiscoverHosts}" />
-				<property name="autoDiscoveryDelayInSeconds" value="${autoDiscoveryDelayInSeconds}" />
-			</bean>
+			<list>
+				<bean class="java.net.InetAddress" factory-method="getByName">
+					<constructor-arg value="127.0.0.1" />
+				</bean>
+			</list>
+		</constructor-arg>
+		<constructor-arg>
+			<bean class="com.datastax.driver.core.Configuration"/>
 		</constructor-arg>
 	</bean>
 

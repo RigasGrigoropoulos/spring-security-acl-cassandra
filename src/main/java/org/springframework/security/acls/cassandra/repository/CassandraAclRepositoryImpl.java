@@ -20,23 +20,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import me.prettyprint.cassandra.serializers.BooleanSerializer;
-import me.prettyprint.cassandra.serializers.CompositeSerializer;
-import me.prettyprint.cassandra.serializers.IntegerSerializer;
-import me.prettyprint.cassandra.serializers.StringSerializer;
-import me.prettyprint.cassandra.service.template.ColumnFamilyResult;
-import me.prettyprint.cassandra.service.template.ColumnFamilyRowMapper;
-import me.prettyprint.cassandra.service.template.ColumnFamilyTemplate;
-import me.prettyprint.cassandra.service.template.MappedColumnFamilyResult;
-import me.prettyprint.cassandra.service.template.ThriftColumnFamilyTemplate;
-import me.prettyprint.hector.api.Cluster;
-import me.prettyprint.hector.api.Keyspace;
-import me.prettyprint.hector.api.ResultStatus;
-import me.prettyprint.hector.api.beans.Composite;
-import me.prettyprint.hector.api.factory.HFactory;
-import me.prettyprint.hector.api.mutation.MutationResult;
-import me.prettyprint.hector.api.mutation.Mutator;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.security.acls.cassandra.model.AclEntry;
@@ -45,70 +28,101 @@ import org.springframework.security.acls.cassandra.repository.exceptions.AclAlre
 import org.springframework.security.acls.cassandra.repository.exceptions.AclNotFoundException;
 import org.springframework.util.Assert;
 
+import com.datastax.driver.core.BoundStatement;
+import com.datastax.driver.core.Cluster;
+import com.datastax.driver.core.PreparedStatement;
+import com.datastax.driver.core.ResultSet;
+import com.datastax.driver.core.Row;
+import com.datastax.driver.core.Session;
+import com.datastax.driver.core.exceptions.AlreadyExistsException;
+import com.datastax.driver.core.querybuilder.QueryBuilder;
+
 public class CassandraAclRepositoryImpl implements CassandraAclRepository {
 
 	private static final Log LOG = LogFactory.getLog(CassandraAclRepositoryImpl.class);
 
 	private static final String KEYSPACE = "SpringSecurityAclCassandra";
-	private static final String ACL_CF = "AclColumnFamily";
+	private static final String AOI_TABLE = "aois";
+	private static final String CHILDREN_TABLE = "children";
+	private static final String ACL_TABLE = "acls";
+	private static final String INSERT_AOI = "INSERT INTO " + KEYSPACE + "." + AOI_TABLE
+			+ " (id, objId, objClass, isInheriting, owner, isOwnerPrincipal, parentObjId, parentObjClass) " 
+			+ "VALUES (?, ?, ?, ?, ?, ?, ?, ?);";
+	private static final String INSERT_CHILD = "INSERT INTO " + KEYSPACE + "." + CHILDREN_TABLE
+			+ " (id, childId) " 
+			+ "VALUES (?, ?);";
+	private static final String INSERT_ACL = "INSERT INTO " + KEYSPACE + "." + ACL_TABLE
+			+ " (id, aclOrder, sid, mask, isSidPrincipal, isGranting, isAuditSuccess, isAuditFailure) " 
+			+ "VALUES (?, ?, ?, ?, ?, ?, ?, ?);";
 
-	private static final String objectClass = "objectClass";
-	private static final String parentObjectId = "parentObjectId";
-	private static final String parentObjectClass = "parentObjectClass";
-	private static final String ownerSid = "ownerSid";
-	private static final String ownerIsPrincipal = "ownerIsPrincipal";
-	private static final String entriesInheriting = "entriesInheriting";
-	private static final String sidIsPrincipal = "sidIsPrincipal";
-	private static final String granting = "granting";
-	private static final String mask = "mask";
-	private static final String auditSuccess = "auditSuccess";
-	private static final String auditFailure = "auditFailure";
+	private final PreparedStatement insertAoiStatement;
+	private final PreparedStatement insertChildStatement;
+	private final PreparedStatement insertAclStatement;
 
-	private static final String children = "children";
-
-	private final Map<String, Composite> aoi_column_names;
-
-	private ColumnFamilyTemplate<Composite, Composite> template;
-	private final Keyspace ksp;
+	private Session session;
 
 	public CassandraAclRepositoryImpl(Cluster cluster) {
-		ksp = HFactory.createKeyspace(KEYSPACE, cluster);
-		template = new ThriftColumnFamilyTemplate<Composite, Composite>(ksp, ACL_CF, CompositeSerializer.get(), CompositeSerializer.get());
-		aoi_column_names = new HashMap<String, Composite>();
-		aoi_column_names.put(objectClass, createCompositeKey(objectClass));
-		aoi_column_names.put(parentObjectId, createCompositeKey(parentObjectId));
-		aoi_column_names.put(parentObjectClass, createCompositeKey(parentObjectClass));
-		aoi_column_names.put(ownerSid, createCompositeKey(ownerSid));
-		aoi_column_names.put(ownerIsPrincipal, createCompositeKey(ownerIsPrincipal));
-		aoi_column_names.put(entriesInheriting, createCompositeKey(entriesInheriting));
+		session = cluster.connect();
+		insertAoiStatement = session.prepare(INSERT_AOI);
+		insertChildStatement = session.prepare(INSERT_CHILD);
+		insertAclStatement = session.prepare(INSERT_ACL);
+	}
+	
+	public CassandraAclRepositoryImpl(Cluster cluster, boolean initSchema) {
+		session = cluster.connect();
+		if (initSchema) {
+			createKeyspace();
+			createAoisTable();
+			createChilrenTable();
+			createAlcsTable();
+		}
+		insertAoiStatement = session.prepare(INSERT_AOI);
+		insertChildStatement = session.prepare(INSERT_CHILD);
+		insertAclStatement = session.prepare(INSERT_ACL);
 	}
 
-	public Map<AclObjectIdentity, List<AclEntry>> findAcls(List<AclObjectIdentity> objectIdsToLookup, List<String> sids) {
+	public Map<AclObjectIdentity, List<AclEntry>> findAcls(List<AclObjectIdentity> objectIdsToLookup) {
 		assertAclObjectIdentityList(objectIdsToLookup);
 
 		if (LOG.isDebugEnabled()) {
-			LOG.debug("BEGIN findAclEntries: objectIdentities: " + objectIdsToLookup + ", sids: " + sids);
+			LOG.debug("BEGIN findAcls: objectIdentities: " + objectIdsToLookup);
 		}
-		Map<AclObjectIdentity, List<AclEntry>> resultMap = new HashMap<AclObjectIdentity, List<AclEntry>>();
-		MappedColumnFamilyResult<Composite, Composite, Entry<AclObjectIdentity, List<AclEntry>>> result;
-		
-		result = template.queryColumns(createCompositeKeys(objectIdsToLookup), new AclRowMapper(sids));
+		Map<AclObjectIdentity, List<AclEntry>> resultMap = new HashMap<AclObjectIdentity, List<AclEntry>>();		
 
-		if (result != null && result.hasResults()) {
-			boolean done = false;
-			do {
-				Entry<AclObjectIdentity, List<AclEntry>> entry = result.getRow();
-				resultMap.put(entry.getKey(), entry.getValue());
-				if (result.hasNext()) {
-					result.next();
-				} else {
-					done = true;
+		List<String> ids = new ArrayList<String>();
+		for (AclObjectIdentity entry : objectIdsToLookup) {
+			ids.add(entry.getRowId());
+		}
+		
+		ResultSet resultSet = session.execute(QueryBuilder.select().all().from(KEYSPACE, AOI_TABLE).where(QueryBuilder.in("id", ids.toArray())));
+		for (Row row : resultSet.all()) {
+			resultMap.put(covertToAclObjectIdentity(row), new ArrayList<AclEntry>());
+		}
+		
+		resultSet = session.execute(QueryBuilder.select().all().from(KEYSPACE, ACL_TABLE).where(QueryBuilder.in("id", ids.toArray())));
+		for (Row row : resultSet.all()) {
+			String aoiId = row.getString("id");
+			
+			AclEntry aclEntry = new AclEntry();
+			aclEntry.setAuditFailure(row.getBool("isAuditFailure"));
+			aclEntry.setAuditSuccess(row.getBool("isAuditSuccess"));
+			aclEntry.setGranting(row.getBool("isGranting"));
+			aclEntry.setMask(row.getInt("mask"));
+			aclEntry.setOrder(row.getInt("aclOrder"));
+			aclEntry.setSid(row.getString("sid"));
+			aclEntry.setSidPrincipal(row.getBool("isSidPrincipal"));			
+			aclEntry.setId(aoiId + ":" + aclEntry.getSid() + ":" + aclEntry.getOrder());
+			
+			for (Entry<AclObjectIdentity, List<AclEntry>> entry : resultMap.entrySet()) {
+				if (entry.getKey().getRowId().equals(aoiId)) {
+					entry.getValue().add(aclEntry.getOrder(), aclEntry);
+					break;
 				}
-			} while (!done);
+			}
 		}
 
 		if (LOG.isDebugEnabled()) {
-			LOG.debug("END findAclEntries: objectIdentities: " + resultMap.keySet() + ", aclEntries: " + resultMap.values());
+			LOG.debug("END findAcls: objectIdentities: " + resultMap.keySet() + ", aclEntries: " + resultMap.values());
 		}
 		return resultMap;
 	}
@@ -119,12 +133,9 @@ public class CassandraAclRepositoryImpl implements CassandraAclRepository {
 		if (LOG.isDebugEnabled()) {
 			LOG.debug("BEGIN findAclObjectIdentity: objectIdentity: " + objectId);
 		}
-		AclObjectIdentity objectIdentity = null;
-		Entry<AclObjectIdentity, List<AclEntry>> result = template.queryColumns(createCompositeKey(objectId), new ArrayList<Composite>(
-				aoi_column_names.values()), new AclRowMapper());
-		if (result != null) {
-			objectIdentity = result.getKey();
-		}
+
+		Row row = session.execute(QueryBuilder.select().all().from(KEYSPACE, AOI_TABLE).where(QueryBuilder.eq("id", objectId.getRowId()))).one();
+		AclObjectIdentity objectIdentity = covertToAclObjectIdentity(row);
 
 		if (LOG.isDebugEnabled()) {
 			LOG.debug("END findAclObjectIdentity: objectIdentity: " + objectIdentity);
@@ -138,8 +149,13 @@ public class CassandraAclRepositoryImpl implements CassandraAclRepository {
 		if (LOG.isDebugEnabled()) {
 			LOG.debug("BEGIN findAclObjectIdentityChildren: objectIdentity: " + objectId);
 		}
-		List<AclObjectIdentity> result = template.queryColumns(
-				createCompositeKey(objectId.getObjectClass(), objectId.getId(), children), new AclChildrenRowMapper());
+		List<AclObjectIdentity> result = new ArrayList<AclObjectIdentity>();
+
+		ResultSet resultSet = session.execute(QueryBuilder.select().all().from(KEYSPACE, CHILDREN_TABLE)
+				.where(QueryBuilder.eq("id", objectId.getRowId())));
+		for (Row row : resultSet.all()) {
+			result.add(covertToAclObjectIdentity(row));
+		}
 
 		if (LOG.isDebugEnabled()) {
 			LOG.debug("END findAclObjectIdentityChildren: children: " + result);
@@ -154,15 +170,15 @@ public class CassandraAclRepositoryImpl implements CassandraAclRepository {
 			LOG.debug("BEGIN deleteAcls: objectIdsToDelete: " + objectIdsToDelete);
 		}
 
-		Mutator<Composite> mutator = template.createMutator();
-		for (Composite entryId : createCompositeKeys(objectIdsToDelete)) {
-			mutator.addDeletion(entryId, ACL_CF);
-			mutator.addDeletion(createCompositeKey((String) entryId.get(0), (String) entryId.get(1), children), ACL_CF);
+		List<String> ids = new ArrayList<String>();
+		for (AclObjectIdentity entry : objectIdsToDelete) {
+			ids.add(entry.getRowId());
 		}
-		MutationResult result = mutator.execute();
-
+		session.execute(QueryBuilder.delete().all().from(KEYSPACE, AOI_TABLE).where(QueryBuilder.in("id", ids.toArray())));
+		session.execute(QueryBuilder.delete().all().from(KEYSPACE, CHILDREN_TABLE).where(QueryBuilder.in("id", ids.toArray())));
+		
 		if (LOG.isDebugEnabled()) {
-			LOG.debug("END deleteAcls " + getResultInfoString(result));
+			LOG.debug("END deleteAcls");
 		}
 	}
 
@@ -178,12 +194,17 @@ public class CassandraAclRepositoryImpl implements CassandraAclRepository {
 			throw new AclAlreadyExistsException("Object identity '" + aoi + "' already exists");
 		}
 
-		Mutator<Composite> mutator = HFactory.createMutator(ksp, CompositeSerializer.get());
-		addAclObjectIdentityInsertions(aoi, mutator);
-		MutationResult result = mutator.execute();
-
+		BoundStatement aoiBoundStatement = new BoundStatement(insertAoiStatement);		
+		session.execute(aoiBoundStatement.bind(aoi.getRowId(), aoi.getId(), aoi.getObjectClass(), aoi.isEntriesInheriting(),
+				aoi.getOwnerId(), aoi.isOwnerPrincipal(), aoi.getParentObjectId(), aoi.getParentObjectClass()));
+		
+		if (aoi.getParentRowId() != null) {
+			BoundStatement childBoundStatement = new BoundStatement(insertChildStatement);
+			session.execute(childBoundStatement.bind(aoi.getParentRowId(), aoi.getRowId()));
+		}
+		
 		if (LOG.isDebugEnabled()) {
-			LOG.debug("END saveAcl " + getResultInfoString(result));
+			LOG.debug("END saveAcl");
 		}
 	}
 
@@ -195,34 +216,39 @@ public class CassandraAclRepositoryImpl implements CassandraAclRepository {
 		}
 
 		// Check this object identity is already persisted
-		if (findAclObjectIdentity(aoi) == null) {
+		AclObjectIdentity persistedAoi = findAclObjectIdentity(aoi);
+		if (persistedAoi == null) {
 			throw new AclNotFoundException("Object identity '" + aoi + "' does not exist");
 		}
 
-		Composite aclId = createCompositeKey(aoi);
-		Mutator<Composite> mutator = HFactory.createMutator(ksp, CompositeSerializer.get());
-		mutator.addDeletion(aclId, ACL_CF);
-		addAclObjectIdentityInsertions(aoi, mutator);
-
+		// Update AOI
+		BoundStatement aoiBoundStatement = new BoundStatement(insertAoiStatement);	
+		session.execute(aoiBoundStatement.bind(aoi.getRowId(), aoi.getId(), aoi.getObjectClass(), aoi.isEntriesInheriting(),
+				aoi.getOwnerId(), aoi.isOwnerPrincipal(), aoi.getParentObjectId(), aoi.getParentObjectClass()));
+	
+		// Check if parent is different and update children table
+		if (!(persistedAoi.getParentRowId() == null ? aoi.getParentRowId() == null : persistedAoi.getParentRowId().equals(aoi.getParentRowId()))) {
+			if (persistedAoi.getParentRowId() != null) {
+				QueryBuilder.delete().all().from(KEYSPACE, CHILDREN_TABLE).where(QueryBuilder.eq("id", persistedAoi.getParentRowId())).and(QueryBuilder.eq("childId", aoi.getRowId()));
+			}
+			if (aoi.getParentRowId() != null) {
+				BoundStatement childBoundStatement = new BoundStatement(insertChildStatement);
+				session.execute(childBoundStatement.bind(aoi.getParentRowId(), aoi.getRowId()));
+			}
+		}
+		
+		// Update ACLs
+		QueryBuilder.delete().all().from(KEYSPACE, ACL_TABLE).where(QueryBuilder.eq("id", aoi.getRowId()));
 		if (entries != null) {
 			for (AclEntry entry : entries) {
-				mutator.addInsertion(aclId,	ACL_CF,
-						HFactory.createColumn(createCompositeKey(entry.getSid(), String.valueOf(entry.getOrder()), mask), entry.getMask(), new CompositeSerializer(),	IntegerSerializer.get()));
-				mutator.addInsertion(aclId, ACL_CF, 
-						HFactory.createColumn(createCompositeKey(entry.getSid(), String.valueOf(entry.getOrder()), auditSuccess), entry.isAuditSuccess(), new CompositeSerializer(), BooleanSerializer.get()));
-				mutator.addInsertion(aclId, ACL_CF, 
-						HFactory.createColumn(createCompositeKey(entry.getSid(), String.valueOf(entry.getOrder()), auditFailure), entry.isAuditFailure(), new CompositeSerializer(), BooleanSerializer.get()));
-				mutator.addInsertion(aclId, ACL_CF, 
-						HFactory.createColumn(createCompositeKey(entry.getSid(), String.valueOf(entry.getOrder()), sidIsPrincipal), entry.isSidPrincipal(), new CompositeSerializer(), BooleanSerializer.get()));
-				mutator.addInsertion(aclId, ACL_CF, 
-						HFactory.createColumn(createCompositeKey(entry.getSid(), String.valueOf(entry.getOrder()), granting), entry.isGranting(), new CompositeSerializer(), BooleanSerializer.get()));
+				BoundStatement aclBoundStatement = new BoundStatement(insertAclStatement);
+				session.execute(aclBoundStatement.bind(aoi.getRowId(), entry.getOrder(), entry.getSid(), entry.getMask(), entry.isSidPrincipal(),
+						entry.isGranting(), entry.isAuditSuccess(), entry.isAuditFailure()));
 			}
 		}
 
-		MutationResult result = mutator.execute();
-
 		if (LOG.isDebugEnabled()) {
-			LOG.debug("END updateAcl " + getResultInfoString(result));
+			LOG.debug("END updateAcl");
 		}
 	}
 
@@ -238,160 +264,76 @@ public class CassandraAclRepositoryImpl implements CassandraAclRepository {
 		Assert.notNull(aoi.getId(), "The AclObjectIdentity id cannot be null");
 		Assert.notNull(aoi.getObjectClass(), "The AclObjectIdentity objectClass cannot be null");
 	}
-
-	private void addAclObjectIdentityInsertions(AclObjectIdentity aoi, Mutator<Composite> mutator) {
-		Composite aclId = createCompositeKey(aoi);
-		mutator.addInsertion(aclId, ACL_CF,
-				HFactory.createColumn(aoi_column_names.get(objectClass), aoi.getObjectClass(), new CompositeSerializer(), StringSerializer.get()));
-		mutator.addInsertion(aclId, ACL_CF, 
-				HFactory.createColumn(aoi_column_names.get(entriesInheriting), aoi.isEntriesInheriting(), new CompositeSerializer(), BooleanSerializer.get()));
-		mutator.addInsertion(aclId, ACL_CF,
-				HFactory.createColumn(aoi_column_names.get(ownerSid), aoi.getOwnerId(), new CompositeSerializer(), StringSerializer.get()));
-		mutator.addInsertion(aclId,	ACL_CF,
-				HFactory.createColumn(aoi_column_names.get(ownerIsPrincipal), aoi.isOwnerPrincipal(), new CompositeSerializer(), BooleanSerializer.get()));
-		if (aoi.getParentObjectId() != null && !aoi.getParentObjectId().isEmpty()) {
-			mutator.addInsertion(aclId,	ACL_CF,
-					HFactory.createColumn(aoi_column_names.get(parentObjectId), aoi.getParentObjectId(), new CompositeSerializer(),	StringSerializer.get()));
-			mutator.addInsertion(aclId, ACL_CF, 
-					HFactory.createColumn(aoi_column_names.get(parentObjectClass), aoi.getParentObjectClass(), new CompositeSerializer(), StringSerializer.get()));
-			addParentInsertions(aoi, mutator);
-		}
-	}
-
-	private void addParentInsertions(AclObjectIdentity aoi, Mutator<Composite> mutator) {
-		Composite aclId = createCompositeKey(aoi.getParentObjectClass(), aoi.getParentObjectId(), children);
-		mutator.addInsertion(aclId, ACL_CF,
-				HFactory.createColumn(createCompositeKey(aoi.getObjectClass(), aoi.getId()), "", new CompositeSerializer(), StringSerializer.get()));
-	}
-
-	private String getResultInfoString(ResultStatus resultStatus) {
-		return "took " + resultStatus.getExecutionTimeMicro() + " ms on host " + resultStatus.getHostUsed().getUrl();
-	}
-
-	private List<Composite> createCompositeKeys(List<AclObjectIdentity> objectIds) {
-		List<Composite> result = new ArrayList<Composite>();
-		for (AclObjectIdentity objectId : objectIds) {
-			result.add(createCompositeKey(objectId));
-		}
+	
+	private AclObjectIdentity covertToAclObjectIdentity(Row row) {
+		AclObjectIdentity result = null;
+		if (row != null) {
+			result = new AclObjectIdentity();
+			result.setId(row.getString("objId"));
+			result.setObjectClass(row.getString("objClass"));
+			result.setOwnerId(row.getString("owner"));
+			result.setEntriesInheriting(row.getBool("isInheriting"));
+			result.setOwnerPrincipal(row.getBool("isOwnerPrincipal"));
+			result.setParentObjectClass(row.getString("parentObjClass"));
+			result.setParentObjectId(row.getString("parentObjId"));
+		}		
 		return result;
 	}
-
-	private Composite createCompositeKey(AclObjectIdentity objectId) {
-		return createCompositeKey(objectId.getObjectClass(), objectId.getId());
-	}
-
-	private Composite createCompositeKey(String... params) {
-		Composite columnKey = new Composite();
-		for (String param : params) {
-			columnKey.addComponent(param, StringSerializer.get());
-		}
-		return columnKey;
-	}
-
-	private AclEntry getOrCreateAclEntry(List<AclEntry> aeList, String sid, String aclObjectId, String aclObjectClass, int order) {
-		for (AclEntry entry : aeList) {
-			if (entry.getSid().equals(sid) && order == entry.getOrder()) {
-				return entry;
-			}
-		}
-		AclEntry entry = new AclEntry();
-		entry.setSid(sid);
-		entry.setId(aclObjectClass + ":" + aclObjectId + ":" + sid);
-		entry.setOrder(order);
-		aeList.add(entry);
-		return entry;
-	}
-
-	private class AclRowMapper implements ColumnFamilyRowMapper<Composite, Composite, Entry<AclObjectIdentity, List<AclEntry>>> {
-
-		private List<String> sids;
-		
-		public AclRowMapper() { }
-		
-		public AclRowMapper(List<String> sids) {
-			this.sids = sids;
-		}
-
-		public Entry<AclObjectIdentity, List<AclEntry>> mapRow(ColumnFamilyResult<Composite, Composite> results) {
-			if (results.hasResults()) {
-				final List<AclEntry> aeList = new ArrayList<AclEntry>();
-				final AclObjectIdentity aoi = new AclObjectIdentity();
-				aoi.setId(results.getKey().get(1, StringSerializer.get()));
-				aoi.setObjectClass(results.getKey().get(0, StringSerializer.get()));
-
-				for (Composite columnName : results.getColumnNames()) {
-					String firstColumnNameComponent = columnName.get(0, StringSerializer.get());
-					if (aoi_column_names.keySet().contains(firstColumnNameComponent)) {
-						if (firstColumnNameComponent.equals(entriesInheriting)) {
-							aoi.setEntriesInheriting(results.getBoolean(columnName));
-						} else if (firstColumnNameComponent.equals(ownerSid)) {
-							aoi.setOwnerId(results.getString(columnName));
-						} else if (firstColumnNameComponent.equals(ownerIsPrincipal)) {
-							aoi.setOwnerPrincipal(results.getBoolean(columnName));
-						} else if (firstColumnNameComponent.equals(parentObjectId)) {
-							aoi.setParentObjectId(results.getString(columnName));
-						} else if (firstColumnNameComponent.equals(parentObjectClass)) {
-							aoi.setParentObjectClass(results.getString(columnName));
-						}
-					} else {
-						String sid = firstColumnNameComponent;
-						if (sids == null || sids.isEmpty() || (sids != null && sids.contains(sid))) {
-							int order = Integer.valueOf(columnName.get(1, StringSerializer.get()));
-							String paramName = columnName.get(2, StringSerializer.get());
-							AclEntry aclEntry = getOrCreateAclEntry(aeList, sid, aoi.getId(), aoi.getObjectClass(), order);
-							if (paramName.equals(sidIsPrincipal)) {
-								aclEntry.setSidPrincipal(results.getBoolean(columnName));
-							} else if (paramName.equals(mask)) {
-								aclEntry.setMask(results.getInteger(columnName));
-							} else if (paramName.equals(granting)) {
-								aclEntry.setGranting(results.getBoolean(columnName));
-							} else if (paramName.equals(auditSuccess)) {
-								aclEntry.setAuditSuccess(results.getBoolean(columnName));
-							} else if (paramName.equals(auditFailure)) {
-								aclEntry.setAuditFailure(results.getBoolean(columnName));
-							}
-						}
-					}
-				}
-
-				if (LOG.isDebugEnabled()) {
-					LOG.debug("Query " + getResultInfoString(results));
-				}
-
-				return new Entry<AclObjectIdentity, List<AclEntry>>() {
-
-					public List<AclEntry> setValue(List<AclEntry> value) {
-						throw new UnsupportedOperationException("Cannot modify the value");
-					}
-
-					public List<AclEntry> getValue() {
-						return aeList;
-					}
-
-					public AclObjectIdentity getKey() {
-						return aoi;
-					}
-				};
-			}
-			return null;
+	
+	public void createAoisTable() {
+		try {
+			session.execute("CREATE TABLE " + KEYSPACE + ".aois (" 
+					+ "id varchar PRIMARY KEY," 
+					+ "objId varchar," 
+					+ "objClass varchar," 
+					+ "isInheriting boolean," 
+					+ "owner varchar,"
+					+ "isOwnerPrincipal boolean," 
+					+ "parentObjId varchar,"
+					+ "parentObjClass varchar"
+					+ ");");
+		} catch (AlreadyExistsException e) {
+			LOG.warn(e);
 		}
 	}
 	
-	private class AclChildrenRowMapper implements ColumnFamilyRowMapper<Composite, Composite, List<AclObjectIdentity>> {
-
-		public List<AclObjectIdentity> mapRow(ColumnFamilyResult<Composite, Composite> results) {
-			List<AclObjectIdentity> result = null;
-			if (results.hasResults()) {
-				result = new ArrayList<AclObjectIdentity>();
-				
-				for (Composite columnName : results.getColumnNames()) {
-					AclObjectIdentity child = new AclObjectIdentity();
-					child.setObjectClass(columnName.get(0, StringSerializer.get()));
-					child.setId(columnName.get(1, StringSerializer.get()));
-					result.add(child);
-				}				
-			}
-			return result;
+	public void createChilrenTable() {
+		try {
+			session.execute("CREATE TABLE " + KEYSPACE + ".children (" 
+					+ "id varchar," 
+					+ "childId varchar,"
+					+ "PRIMARY KEY (id, childId)"
+					+ ");");
+		} catch (AlreadyExistsException e) {
+			LOG.warn(e);
 		}
 	}
+	
+	public void createAlcsTable() {
+		try {
+			session.execute("CREATE TABLE " + KEYSPACE + ".acls (" 
+					+ "id varchar," 					
+					+ "sid varchar," 
+					+ "aclOrder int,"
+					+ "mask int," 					
+					+ "isSidPrincipal boolean,"
+					+ "isGranting boolean," 
+					+ "isAuditSuccess boolean," 
+					+ "isAuditFailure boolean," 
+					+ "PRIMARY KEY (id, sid, aclOrder)"
+					+ ");");
+		} catch (AlreadyExistsException e) {
+			LOG.warn(e);
+		}
+	}
+
+	public void createKeyspace() {	
+		try {
+			session.execute("CREATE KEYSPACE " + KEYSPACE 
+					+ " WITH replication " + "= {'class':'SimpleStrategy', 'replication_factor':3};");
+		} catch (AlreadyExistsException e) {
+			LOG.warn(e);
+		}
+	}
+
 }

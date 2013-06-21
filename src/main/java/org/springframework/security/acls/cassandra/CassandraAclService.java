@@ -32,10 +32,8 @@ import org.springframework.security.acls.domain.AccessControlEntryImpl;
 import org.springframework.security.acls.domain.AclAuthorizationStrategy;
 import org.springframework.security.acls.domain.AclImpl;
 import org.springframework.security.acls.domain.DefaultPermissionFactory;
-import org.springframework.security.acls.domain.GrantedAuthoritySid;
 import org.springframework.security.acls.domain.ObjectIdentityImpl;
 import org.springframework.security.acls.domain.PermissionFactory;
-import org.springframework.security.acls.domain.PrincipalSid;
 import org.springframework.security.acls.model.AccessControlEntry;
 import org.springframework.security.acls.model.Acl;
 import org.springframework.security.acls.model.AclCache;
@@ -133,7 +131,7 @@ public class CassandraAclService implements AclService {
 		}
 
 		if (!objectsToLookup.isEmpty()) {
-			Map<ObjectIdentity, Acl> loadedAcls = doLookup(objectsToLookup, sids);
+			Map<ObjectIdentity, Acl> loadedAcls = doLookup(objectsToLookup);
 			result.putAll(loadedAcls);
 
 			// Put loaded Acls in the cache
@@ -156,40 +154,29 @@ public class CassandraAclService implements AclService {
 		return result;
 	}
 
-	private Map<ObjectIdentity, Acl> doLookup(List<ObjectIdentity> objects, List<Sid> sids) {
+	private Map<ObjectIdentity, Acl> doLookup(List<ObjectIdentity> objects) {
 		Map<ObjectIdentity, Acl> result = new HashMap<ObjectIdentity, Acl>();
 		
 		if (objects != null && !objects.isEmpty()) {
 			List<AclObjectIdentity> objectIds = new ArrayList<AclObjectIdentity>();
-			List<String> sidIds = new ArrayList<String>();
 
 			for (ObjectIdentity objId : objects) {
 				objectIds.add(new AclObjectIdentity(objId));
 			}
 
-			if (sids != null) {
-				for (Sid sid : sids) {
-					if (sid instanceof PrincipalSid) {
-						sidIds.add(((PrincipalSid) sid).getPrincipal());
-					} else if (sid instanceof GrantedAuthoritySid) {
-						sidIds.add(((GrantedAuthoritySid) sid).getGrantedAuthority());
-					}
-				}
-			}
-
-			Map<AclObjectIdentity, List<AclEntry>> aeList = aclRepository.findAcls(objectIds, sidIds);		
-			Map<ObjectIdentity, Acl> parentAcls = lookupParents(aeList.keySet(), sids);
+			Map<AclObjectIdentity, List<AclEntry>> aeList = aclRepository.findAcls(objectIds);		
+			Map<ObjectIdentity, Acl> parentAcls = lookupParents(aeList.keySet());
 
 			for (Entry<AclObjectIdentity, List<AclEntry>> entry : aeList.entrySet()) {
 				Acl parentAcl = parentAcls.get(entry.getKey().getParentObjectIdentity());
-				AclImpl loadedAcl = convert(entry.getKey(), entry.getValue(), sids, parentAcl);
+				AclImpl loadedAcl = convert(entry.getKey(), entry.getValue(), parentAcl);
 				result.put(loadedAcl.getObjectIdentity(), loadedAcl);
 			}
 		}		
 		return result;
 	}
 
-	private Map<ObjectIdentity, Acl> lookupParents(Set<AclObjectIdentity> acls, List<Sid> sids) {
+	private Map<ObjectIdentity, Acl> lookupParents(Set<AclObjectIdentity> acls) {
 		List<ObjectIdentity> objectsToLookup = new ArrayList<ObjectIdentity>();
 		for (AclObjectIdentity aoi : acls) {
 			if (aoi.getParentObjectId() != null && !aoi.getParentObjectId().isEmpty()
@@ -197,12 +184,12 @@ public class CassandraAclService implements AclService {
 				objectsToLookup.add(new ObjectIdentityImpl(aoi.getParentObjectClass(), aoi.getParentObjectId()));
 			}
 		}
-		return doLookup(objectsToLookup, sids);
+		return doLookup(objectsToLookup);
 	}
 
-	private AclImpl convert(AclObjectIdentity aclObjectIdentity, List<AclEntry> aclEntries, List<Sid> sids, Acl parentAcl) {
+	private AclImpl convert(AclObjectIdentity aclObjectIdentity, List<AclEntry> aclEntries, Acl parentAcl) {
 		AclImpl acl = new AclImpl(aclObjectIdentity.toObjectIdentity(), aclObjectIdentity.getId(),
-				aclAuthorizationStrategy, grantingStrategy, parentAcl, sids, aclObjectIdentity.isEntriesInheriting(), aclObjectIdentity.getOwnerSId());
+				aclAuthorizationStrategy, grantingStrategy, parentAcl, null, aclObjectIdentity.isEntriesInheriting(), aclObjectIdentity.getOwnerSId());
 
 		List<AccessControlEntry> aces = new ArrayList<AccessControlEntry>(aclEntries.size());
 		for (AclEntry entry : aclEntries) {

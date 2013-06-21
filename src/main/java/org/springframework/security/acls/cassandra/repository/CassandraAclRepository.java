@@ -25,7 +25,7 @@ import org.springframework.security.acls.cassandra.repository.exceptions.AclNotF
 
 public interface CassandraAclRepository {
 
-	Map<AclObjectIdentity, List<AclEntry>> findAcls(List<AclObjectIdentity> objectIdsToLookup, List<String> sids);
+	Map<AclObjectIdentity, List<AclEntry>> findAcls(List<AclObjectIdentity> objectIdsToLookup);
 
 	AclObjectIdentity findAclObjectIdentity(AclObjectIdentity objectId);
 	

@@ -18,18 +18,13 @@ import static org.junit.Assert.*;
 
 import java.util.Arrays;
 
-import me.prettyprint.cassandra.service.ThriftKsDef;
-import me.prettyprint.hector.api.Cluster;
-import me.prettyprint.hector.api.ddl.ColumnFamilyDefinition;
-import me.prettyprint.hector.api.ddl.KeyspaceDefinition;
-import me.prettyprint.hector.api.factory.HFactory;
-
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.acls.cassandra.repository.CassandraAclRepositoryImpl;
 import org.springframework.security.acls.domain.BasePermission;
 import org.springframework.security.acls.domain.ObjectIdentityImpl;
 import org.springframework.security.acls.domain.PrincipalSid;
@@ -44,17 +39,25 @@ import org.springframework.test.annotation.ExpectedException;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
+import com.datastax.driver.core.Cluster;
+import com.datastax.driver.core.Host;
+import com.datastax.driver.core.Metadata;
+import com.datastax.driver.core.Session;
+
 @RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(locations = { "classpath:/service-context.xml" })
+@ContextConfiguration(locations = { "classpath:/service-context.xml", "classpath:/context.xml" })
 public class ReportServiceTest {
 	
 	private static final String KEYSPACE = "SpringSecurityAclCassandra";
-	private static final String ACL_CF = "AclColumnFamily";
-
 	private static final String sid1 = "sid1@system";
 	
 	@Autowired
+	private CassandraAclRepositoryImpl service;
+
+	@Autowired
 	private Cluster cluster;
+	
+	private Session session;
 	
 	@Autowired
 	private ReportService testService;
@@ -62,23 +65,19 @@ public class ReportServiceTest {
 	@Autowired
 	private MutableAclService aclService;
 
-	private KeyspaceDefinition keyspaceDef;
-
 	@Before
 	public void setUp() throws Exception {
-		keyspaceDef = cluster.describeKeyspace(KEYSPACE);
-
-		if (keyspaceDef != null) {
-			cluster.dropColumnFamily(KEYSPACE, ACL_CF);
-			cluster.dropKeyspace(KEYSPACE, true);
+		Metadata metadata = cluster.getMetadata();
+		System.out.printf("Connected to cluster: %s\n", metadata.getClusterName());
+		for (Host host : metadata.getAllHosts()) {
+			System.out.printf("Datacenter: %s; Host: %s; Rack: %s\n", host.getDatacenter(), host.getAddress(), host.getRack());
 		}
-
-		ColumnFamilyDefinition cfDef = HFactory.createColumnFamilyDefinition(KEYSPACE, ACL_CF);
-		KeyspaceDefinition newKeyspace = HFactory.createKeyspaceDefinition(KEYSPACE, ThriftKsDef.DEF_STRATEGY_CLASS, 1, Arrays.asList(cfDef));
-		// Add the schema to the cluster.
-		// "true" as the second param means that Hector will block until all
-		// nodes see the change.
-		cluster.addKeyspace(newKeyspace, true);
+		
+		session = cluster.connect();
+		service.createKeyspace();
+		service.createAoisTable();
+		service.createAlcsTable();
+		service.createChilrenTable();
 
 		SecurityContextHolder.getContext().setAuthentication(
 				new UsernamePasswordAuthenticationToken(sid1, "password", Arrays.asList(new SimpleGrantedAuthority[] { new SimpleGrantedAuthority(
@@ -88,6 +87,7 @@ public class ReportServiceTest {
 	@After
 	public void tearDown() throws Exception {
 		testService.clearReports();
+		session.execute("DROP KEYSPACE " + KEYSPACE);
 	}
 
 	@Test

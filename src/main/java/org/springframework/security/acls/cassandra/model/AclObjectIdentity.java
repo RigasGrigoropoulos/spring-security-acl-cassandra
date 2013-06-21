@@ -54,8 +54,8 @@ public class AclObjectIdentity {
 			ownerPrincipal = false;
 		}
 	
-		parentObjectId = acl.getParentAcl() != null ? (String) acl.getParentAcl().getObjectIdentity().getIdentifier() : "";
-		parentObjectClass = acl.getParentAcl() != null ? (String) acl.getParentAcl().getObjectIdentity().getType() : "";
+		parentObjectId = acl.getParentAcl() != null ? (String) acl.getParentAcl().getObjectIdentity().getIdentifier() : null;
+		parentObjectClass = acl.getParentAcl() != null ? (String) acl.getParentAcl().getObjectIdentity().getType() : null;
 	}
 	
 	public String getId() {
@@ -133,6 +133,17 @@ public class AclObjectIdentity {
 
 	public ObjectIdentity toObjectIdentity() {
 		return new ObjectIdentityImpl(objectClass, id);
+	}
+	
+	public String getRowId() {
+		return objectClass + ":" + id;
+	}
+	
+	public String getParentRowId() {
+		if (parentObjectId != null && parentObjectClass != null) {
+			return parentObjectClass + ":" + parentObjectId;
+		}
+		return null;
 	}
 
 	@Override

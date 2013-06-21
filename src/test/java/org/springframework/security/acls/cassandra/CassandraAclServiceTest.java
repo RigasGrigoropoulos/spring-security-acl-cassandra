@@ -21,16 +21,12 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
-import me.prettyprint.cassandra.service.ThriftKsDef;
-import me.prettyprint.hector.api.Cluster;
-import me.prettyprint.hector.api.ddl.ColumnFamilyDefinition;
-import me.prettyprint.hector.api.ddl.KeyspaceDefinition;
-import me.prettyprint.hector.api.factory.HFactory;
-
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.acls.cassandra.repository.CassandraAclRepositoryImpl;
 import org.springframework.security.acls.domain.BasePermission;
 import org.springframework.security.acls.domain.GrantedAuthoritySid;
 import org.springframework.security.acls.domain.ObjectIdentityImpl;
@@ -50,48 +46,56 @@ import org.springframework.test.annotation.ExpectedException;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
+import com.datastax.driver.core.Cluster;
+import com.datastax.driver.core.Host;
+import com.datastax.driver.core.Metadata;
+import com.datastax.driver.core.Session;
+
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:/context.xml" })
 public class CassandraAclServiceTest {
 
 	private static final String KEYSPACE = "SpringSecurityAclCassandra";
-	private static final String ACL_CF = "AclColumnFamily";
-
 	private static final String sid1 = "sid1@system";
 	private static final String sid2 = "sid2@system";
-
 	private static final String aoi_id = "123";
 	private static final String aoi_class = "a.b.c.Class";
 	private static final String ROLE_ADMIN = "ROLE_ADMIN";
 
 	@Autowired
 	private MutableAclService service;
+	
+	@Autowired
+	private CassandraAclRepositoryImpl repository;
 
 	@Autowired
 	private Cluster cluster;
+	
+	private Session session;
 
-	private KeyspaceDefinition keyspaceDef;
 
 	@Before
 	public void setUp() throws Exception {
-		keyspaceDef = cluster.describeKeyspace(KEYSPACE);
-
-		if (keyspaceDef != null) {
-			cluster.dropColumnFamily(KEYSPACE, ACL_CF);
-			cluster.dropKeyspace(KEYSPACE, true);
+		Metadata metadata = cluster.getMetadata();
+		System.out.printf("Connected to cluster: %s\n", metadata.getClusterName());
+		for (Host host : metadata.getAllHosts()) {
+			System.out.printf("Datacenter: %s; Host: %s; Rack: %s\n", host.getDatacenter(), host.getAddress(), host.getRack());
 		}
-
-		ColumnFamilyDefinition cfDef = HFactory.createColumnFamilyDefinition(KEYSPACE, ACL_CF);
-		KeyspaceDefinition newKeyspace = HFactory.createKeyspaceDefinition(KEYSPACE, ThriftKsDef.DEF_STRATEGY_CLASS, 1, Arrays.asList(cfDef));
-		// Add the schema to the cluster.
-		// "true" as the second param means that Hector will block until all
-		// nodes see the change.
-		cluster.addKeyspace(newKeyspace, true);
+		
+		session = cluster.connect();
+		repository.createKeyspace();
+		repository.createAoisTable();
+		repository.createAlcsTable();
+		repository.createChilrenTable();
 
 		SecurityContextHolder.getContext().setAuthentication(
 				new UsernamePasswordAuthenticationToken(sid1, "password", Arrays.asList(new SimpleGrantedAuthority[] { new SimpleGrantedAuthority(
-						ROLE_ADMIN) })));
-		
+						ROLE_ADMIN) })));		
+	}
+	
+	@After
+	public void tearDown() throws Exception {
+		session.execute("DROP KEYSPACE " + KEYSPACE);
 	}
 	
 	@Test
@@ -402,6 +406,7 @@ public class CassandraAclServiceTest {
 		} else if (expected.getSid() instanceof PrincipalSid) {
 			sb.append(((PrincipalSid) expected.getSid()).getPrincipal());
 		}
+		sb.append(":").append(expected.getAcl().getEntries().indexOf(expected));
 		
 		assertEquals(sb.toString(), actual.getId());
 		assertEquals(expected.getPermission(), actual.getPermission());
