@@ -16,6 +16,7 @@ package org.springframework.security.acls.cassandra.repository;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.springframework.security.acls.cassandra.model.AclEntry;
 import org.springframework.security.acls.cassandra.model.AclObjectIdentity;
@@ -25,7 +26,7 @@ import org.springframework.security.acls.cassandra.repository.exceptions.AclNotF
 
 public interface CassandraAclRepository {
 
-	Map<AclObjectIdentity, List<AclEntry>> findAcls(List<AclObjectIdentity> objectIdsToLookup);
+	Map<AclObjectIdentity, Set<AclEntry>> findAcls(List<AclObjectIdentity> objectIdsToLookup);
 
 	AclObjectIdentity findAclObjectIdentity(AclObjectIdentity objectId);
 	

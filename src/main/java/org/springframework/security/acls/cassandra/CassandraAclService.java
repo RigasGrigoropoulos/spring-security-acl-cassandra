@@ -164,10 +164,10 @@ public class CassandraAclService implements AclService {
 				objectIds.add(new AclObjectIdentity(objId));
 			}
 
-			Map<AclObjectIdentity, List<AclEntry>> aeList = aclRepository.findAcls(objectIds);		
+			Map<AclObjectIdentity, Set<AclEntry>> aeList = aclRepository.findAcls(objectIds);		
 			Map<ObjectIdentity, Acl> parentAcls = lookupParents(aeList.keySet());
 
-			for (Entry<AclObjectIdentity, List<AclEntry>> entry : aeList.entrySet()) {
+			for (Entry<AclObjectIdentity, Set<AclEntry>> entry : aeList.entrySet()) {
 				Acl parentAcl = parentAcls.get(entry.getKey().getParentObjectIdentity());
 				AclImpl loadedAcl = convert(entry.getKey(), entry.getValue(), parentAcl);
 				result.put(loadedAcl.getObjectIdentity(), loadedAcl);
@@ -187,7 +187,7 @@ public class CassandraAclService implements AclService {
 		return doLookup(objectsToLookup);
 	}
 
-	private AclImpl convert(AclObjectIdentity aclObjectIdentity, List<AclEntry> aclEntries, Acl parentAcl) {
+	private AclImpl convert(AclObjectIdentity aclObjectIdentity, Set<AclEntry> aclEntries, Acl parentAcl) {
 		AclImpl acl = new AclImpl(aclObjectIdentity.toObjectIdentity(), aclObjectIdentity.getId(),
 				aclAuthorizationStrategy, grantingStrategy, parentAcl, null, aclObjectIdentity.isEntriesInheriting(), aclObjectIdentity.getOwnerSId());
 

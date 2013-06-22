@@ -15,10 +15,13 @@
 package org.springframework.security.acls.cassandra.repository;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
+import java.util.TreeSet;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -49,8 +52,8 @@ public class CassandraAclRepositoryImpl implements CassandraAclRepository {
 			+ " (id, objId, objClass, isInheriting, owner, isOwnerPrincipal, parentObjId, parentObjClass) " 
 			+ "VALUES (?, ?, ?, ?, ?, ?, ?, ?);";
 	private static final String INSERT_CHILD = "INSERT INTO " + KEYSPACE + "." + CHILDREN_TABLE
-			+ " (id, childId) " 
-			+ "VALUES (?, ?);";
+			+ " (id, childId, objId, objClass) " 
+			+ "VALUES (?, ?, ?, ?);";
 	private static final String INSERT_ACL = "INSERT INTO " + KEYSPACE + "." + ACL_TABLE
 			+ " (id, aclOrder, sid, mask, isSidPrincipal, isGranting, isAuditSuccess, isAuditFailure) " 
 			+ "VALUES (?, ?, ?, ?, ?, ?, ?, ?);";
@@ -81,13 +84,13 @@ public class CassandraAclRepositoryImpl implements CassandraAclRepository {
 		insertAclStatement = session.prepare(INSERT_ACL);
 	}
 
-	public Map<AclObjectIdentity, List<AclEntry>> findAcls(List<AclObjectIdentity> objectIdsToLookup) {
+	public Map<AclObjectIdentity, Set<AclEntry>> findAcls(List<AclObjectIdentity> objectIdsToLookup) {
 		assertAclObjectIdentityList(objectIdsToLookup);
 
 		if (LOG.isDebugEnabled()) {
 			LOG.debug("BEGIN findAcls: objectIdentities: " + objectIdsToLookup);
 		}
-		Map<AclObjectIdentity, List<AclEntry>> resultMap = new HashMap<AclObjectIdentity, List<AclEntry>>();		
+		Map<AclObjectIdentity, Set<AclEntry>> resultMap = new HashMap<AclObjectIdentity, Set<AclEntry>>();		
 
 		List<String> ids = new ArrayList<String>();
 		for (AclObjectIdentity entry : objectIdsToLookup) {
@@ -96,7 +99,12 @@ public class CassandraAclRepositoryImpl implements CassandraAclRepository {
 		
 		ResultSet resultSet = session.execute(QueryBuilder.select().all().from(KEYSPACE, AOI_TABLE).where(QueryBuilder.in("id", ids.toArray())));
 		for (Row row : resultSet.all()) {
-			resultMap.put(covertToAclObjectIdentity(row), new ArrayList<AclEntry>());
+			resultMap.put(covertToAclObjectIdentity(row, true), new TreeSet<AclEntry>(new Comparator<AclEntry>() {
+
+				public int compare(AclEntry o1, AclEntry o2) {
+					return Integer.compare(o1.getOrder(), o2.getOrder());
+				}
+			}));
 		}
 		
 		resultSet = session.execute(QueryBuilder.select().all().from(KEYSPACE, ACL_TABLE).where(QueryBuilder.in("id", ids.toArray())));
@@ -113,9 +121,9 @@ public class CassandraAclRepositoryImpl implements CassandraAclRepository {
 			aclEntry.setSidPrincipal(row.getBool("isSidPrincipal"));			
 			aclEntry.setId(aoiId + ":" + aclEntry.getSid() + ":" + aclEntry.getOrder());
 			
-			for (Entry<AclObjectIdentity, List<AclEntry>> entry : resultMap.entrySet()) {
+			for (Entry<AclObjectIdentity, Set<AclEntry>> entry : resultMap.entrySet()) {
 				if (entry.getKey().getRowId().equals(aoiId)) {
-					entry.getValue().add(aclEntry.getOrder(), aclEntry);
+					entry.getValue().add(aclEntry);
 					break;
 				}
 			}
@@ -135,7 +143,7 @@ public class CassandraAclRepositoryImpl implements CassandraAclRepository {
 		}
 
 		Row row = session.execute(QueryBuilder.select().all().from(KEYSPACE, AOI_TABLE).where(QueryBuilder.eq("id", objectId.getRowId()))).one();
-		AclObjectIdentity objectIdentity = covertToAclObjectIdentity(row);
+		AclObjectIdentity objectIdentity = covertToAclObjectIdentity(row, true);
 
 		if (LOG.isDebugEnabled()) {
 			LOG.debug("END findAclObjectIdentity: objectIdentity: " + objectIdentity);
@@ -154,7 +162,7 @@ public class CassandraAclRepositoryImpl implements CassandraAclRepository {
 		ResultSet resultSet = session.execute(QueryBuilder.select().all().from(KEYSPACE, CHILDREN_TABLE)
 				.where(QueryBuilder.eq("id", objectId.getRowId())));
 		for (Row row : resultSet.all()) {
-			result.add(covertToAclObjectIdentity(row));
+			result.add(covertToAclObjectIdentity(row, false));
 		}
 
 		if (LOG.isDebugEnabled()) {
@@ -200,7 +208,7 @@ public class CassandraAclRepositoryImpl implements CassandraAclRepository {
 		
 		if (aoi.getParentRowId() != null) {
 			BoundStatement childBoundStatement = new BoundStatement(insertChildStatement);
-			session.execute(childBoundStatement.bind(aoi.getParentRowId(), aoi.getRowId()));
+			session.execute(childBoundStatement.bind(aoi.getParentRowId(), aoi.getRowId(), aoi.getId(), aoi.getObjectClass()));
 		}
 		
 		if (LOG.isDebugEnabled()) {
@@ -233,7 +241,7 @@ public class CassandraAclRepositoryImpl implements CassandraAclRepository {
 			}
 			if (aoi.getParentRowId() != null) {
 				BoundStatement childBoundStatement = new BoundStatement(insertChildStatement);
-				session.execute(childBoundStatement.bind(aoi.getParentRowId(), aoi.getRowId()));
+				session.execute(childBoundStatement.bind(aoi.getParentRowId(), aoi.getRowId(), aoi.getId(), aoi.getObjectClass()));
 			}
 		}
 		
@@ -265,17 +273,19 @@ public class CassandraAclRepositoryImpl implements CassandraAclRepository {
 		Assert.notNull(aoi.getObjectClass(), "The AclObjectIdentity objectClass cannot be null");
 	}
 	
-	private AclObjectIdentity covertToAclObjectIdentity(Row row) {
+	private AclObjectIdentity covertToAclObjectIdentity(Row row, boolean fullObject) {
 		AclObjectIdentity result = null;
 		if (row != null) {
 			result = new AclObjectIdentity();
 			result.setId(row.getString("objId"));
 			result.setObjectClass(row.getString("objClass"));
-			result.setOwnerId(row.getString("owner"));
-			result.setEntriesInheriting(row.getBool("isInheriting"));
-			result.setOwnerPrincipal(row.getBool("isOwnerPrincipal"));
-			result.setParentObjectClass(row.getString("parentObjClass"));
-			result.setParentObjectId(row.getString("parentObjId"));
+			if (fullObject) {
+				result.setOwnerId(row.getString("owner"));
+				result.setEntriesInheriting(row.getBool("isInheriting"));
+				result.setOwnerPrincipal(row.getBool("isOwnerPrincipal"));
+				result.setParentObjectClass(row.getString("parentObjClass"));
+				result.setParentObjectId(row.getString("parentObjId"));
+			}			
 		}		
 		return result;
 	}
@@ -302,6 +312,8 @@ public class CassandraAclRepositoryImpl implements CassandraAclRepository {
 			session.execute("CREATE TABLE " + KEYSPACE + ".children (" 
 					+ "id varchar," 
 					+ "childId varchar,"
+					+ "objId varchar,"
+					+ "objClass varchar,"
 					+ "PRIMARY KEY (id, childId)"
 					+ ");");
 		} catch (AlreadyExistsException e) {

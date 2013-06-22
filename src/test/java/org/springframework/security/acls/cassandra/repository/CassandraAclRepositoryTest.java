@@ -21,6 +21,7 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.junit.After;
 import org.junit.Before;
@@ -102,12 +103,13 @@ public class CassandraAclRepositoryTest {
 
 		service.updateAcl(aoi, Arrays.asList(new AclEntry[] { entry1, entry2 }));
 
-		Map<AclObjectIdentity, List<AclEntry>> result = service.findAcls(Arrays.asList(new AclObjectIdentity[] { aoi }));
+		Map<AclObjectIdentity, Set<AclEntry>> result = service.findAcls(Arrays.asList(new AclObjectIdentity[] { aoi }));
 		assertEquals(1, result.size());
 		assertAclObjectIdentity(aoi, result.keySet().iterator().next());
-		List<AclEntry> aclEntries = result.values().iterator().next();
-		assertAclEntry(aoi, entry1, aclEntries.get(1));
-		assertAclEntry(aoi, entry2, aclEntries.get(0));
+		Set<AclEntry> aclEntries = result.values().iterator().next();
+		Iterator<AclEntry> it = aclEntries.iterator();
+		assertAclEntry(aoi, entry1, it.next());
+		assertAclEntry(aoi, entry2, it.next());
 
 		service.deleteAcls(Arrays.asList(new AclObjectIdentity[] { aoi }));
 
@@ -127,20 +129,34 @@ public class CassandraAclRepositoryTest {
 		service.saveAcl(newAoi2);
 		service.updateAcl(newAoi1, Arrays.asList(new AclEntry[] { entry1 }));
 		service.updateAcl(newAoi2, Arrays.asList(new AclEntry[] { entry1 }));
-		Map<AclObjectIdentity, List<AclEntry>> result = service.findAcls(Arrays.asList(new AclObjectIdentity[] { newAoi1, newAoi2 }));
+		Map<AclObjectIdentity, Set<AclEntry>> result = service.findAcls(Arrays.asList(new AclObjectIdentity[] { newAoi1, newAoi2 }));
 		
 		assertEquals(2, result.size());
 		Iterator<AclObjectIdentity> it = result.keySet().iterator();
-		assertAclObjectIdentity(newAoi1, it.next());
-		assertAclObjectIdentity(newAoi2, it.next());
+		AclObjectIdentity resAoi = it.next();
+		if (resAoi.getId().equals(newAoi1.getId())) {
+			assertAclObjectIdentity(newAoi1, resAoi);
+			assertAclObjectIdentity(newAoi2, it.next());
+		} else {
+			assertAclObjectIdentity(newAoi2, resAoi);
+			assertAclObjectIdentity(newAoi1, it.next());
+		}		
 		
-		Iterator<List<AclEntry>> it2 = result.values().iterator();
-		List<AclEntry> aclEntries = it2.next();
+		Iterator<Set<AclEntry>> it2 = result.values().iterator();
+		Set<AclEntry> aclEntries = it2.next();
 		assertEquals(1, aclEntries.size());
-		assertAclEntry(newAoi1, entry1, aclEntries.get(0));
-		aclEntries = it2.next();
-		assertEquals(1, aclEntries.size());
-		assertAclEntry(newAoi2, entry1, aclEntries.get(0));
+		AclEntry resEntry = aclEntries.iterator().next();
+		if (resEntry.getId().startsWith(newAoi2.getRowId())) {
+			assertAclEntry(newAoi2, entry1, resEntry);
+			aclEntries = it2.next();
+			assertEquals(1, aclEntries.size());
+			assertAclEntry(newAoi1, entry1, aclEntries.iterator().next());
+		} else {
+			assertAclEntry(newAoi1, entry1, resEntry);
+			aclEntries = it2.next();
+			assertEquals(1, aclEntries.size());
+			assertAclEntry(newAoi2, entry1, aclEntries.iterator().next());
+		}	
 	}
 
 	@Test
@@ -240,11 +256,11 @@ public class CassandraAclRepositoryTest {
 		AclEntry entry1 = createTestAclEntry(sid1, 0);
 		service.updateAcl(newAoi, Arrays.asList(new AclEntry[] { entry1 }));
 
-		Map<AclObjectIdentity, List<AclEntry>> result = service.findAcls(Arrays.asList(new AclObjectIdentity[] { newAoi }));
+		Map<AclObjectIdentity, Set<AclEntry>> result = service.findAcls(Arrays.asList(new AclObjectIdentity[] { newAoi }));
 		assertEquals(1, result.size());
 		assertAclObjectIdentity(newAoi, result.keySet().iterator().next());
-		List<AclEntry> aclEntries = result.values().iterator().next();
-		assertAclEntry(newAoi, entry1, aclEntries.get(0));
+		Set<AclEntry> aclEntries = result.values().iterator().next();
+		assertAclEntry(newAoi, entry1, aclEntries.iterator().next());
 
 		service.updateAcl(newAoi, null);
 		result = service.findAcls(Arrays.asList(new AclObjectIdentity[] { newAoi }));

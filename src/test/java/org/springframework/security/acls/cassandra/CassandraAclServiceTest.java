@@ -184,7 +184,7 @@ public class CassandraAclServiceTest {
 		
 		// Test readAclById(ObjectIdentity, List<Sid>) with one Sid in filter
 		childAcl = service.readAclById(childObjectIdentity, Arrays.asList(new Sid[] { new PrincipalSid(sid1) }));
-		assertEquals(1, childAcl.getEntries().size());
+		assertAcl(updatedchildMutableAcl, childAcl);
 		
 		// Test readAclsById(List<ObjectIdentity>)
 		Map<ObjectIdentity, Acl> resultMap = service.readAclsById(Arrays.asList(new ObjectIdentity[] { childObjectIdentity }));
@@ -204,7 +204,7 @@ public class CassandraAclServiceTest {
 		// Test readAclsById(List<ObjectIdentity>, List<Sid) with one Sid in filter
 		resultMap = service.readAclsById(Arrays.asList(new ObjectIdentity[] { childObjectIdentity }), Arrays.asList(new Sid[] { new PrincipalSid(sid1) }));
 		assertEquals(1, resultMap.size());
-		assertEquals(1, resultMap.values().iterator().next().getEntries().size());
+		assertAcl(updatedchildMutableAcl, resultMap.values().iterator().next());
 		
 		// Test findChildren
 		List<ObjectIdentity> children = service.findChildren(updatedParentMutableAcl.getObjectIdentity());
