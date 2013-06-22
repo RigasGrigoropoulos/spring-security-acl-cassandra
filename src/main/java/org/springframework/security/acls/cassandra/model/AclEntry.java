@@ -22,7 +22,7 @@ import org.springframework.security.acls.model.Sid;
 
 public class AclEntry {
 
-	// id pattern: objectClass:objectId:sid
+	// id pattern: objectClass:objectId:sid:order
 	private String id;
 	private String sid;
 	private boolean sidPrincipal;
