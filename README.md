@@ -4,6 +4,7 @@ Communication with the Cassandra cluster is implemented with CQL3 using the [Dat
 
 ## Prerequisites
 Java >= 1.5
+Cassandra >= 1.2
 
 ## License
 spring-security-acl-cassandra is released under version 2.0 of the [Apache License][].
