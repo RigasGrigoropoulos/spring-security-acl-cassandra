@@ -3,8 +3,8 @@ spring-security-acl-cassandra provides AclService and MutableAclService implemen
 Communication with the Cassandra cluster is implemented with CQL3 using the [DataStax Java Driver][].
 
 ## Prerequisites
-Java >= 1.5
-Cassandra >= 1.2
+* Java >= 1.5
+* Cassandra >= 1.2
 
 ## License
 spring-security-acl-cassandra is released under version 2.0 of the [Apache License][].
