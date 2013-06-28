@@ -30,7 +30,9 @@
 	</bean>
 
 	<bean id="aclRepository" class="org.springframework.security.acls.cassandra.repository.CassandraAclRepositoryImpl">
-		<constructor-arg ref="cluster" />
+		<constructor-arg>
+			<bean factory-bean="cluster" factory-method="connect"/>
+		</constructor-arg>
 		<constructor-arg value="true" />
 	</bean>
 

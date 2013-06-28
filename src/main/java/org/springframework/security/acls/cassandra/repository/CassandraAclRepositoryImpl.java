@@ -32,7 +32,6 @@ import org.springframework.security.acls.cassandra.repository.exceptions.AclNotF
 import org.springframework.util.Assert;
 
 import com.datastax.driver.core.BoundStatement;
-import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
@@ -64,15 +63,15 @@ public class CassandraAclRepositoryImpl implements CassandraAclRepository {
 
 	private Session session;
 
-	public CassandraAclRepositoryImpl(Cluster cluster) {
-		session = cluster.connect();
+	public CassandraAclRepositoryImpl(Session session) {
+		this.session = session;
 		insertAoiStatement = session.prepare(INSERT_AOI);
 		insertChildStatement = session.prepare(INSERT_CHILD);
 		insertAclStatement = session.prepare(INSERT_ACL);
 	}
 	
-	public CassandraAclRepositoryImpl(Cluster cluster, boolean initSchema) {
-		session = cluster.connect();
+	public CassandraAclRepositoryImpl(Session session, boolean initSchema) {
+		this.session = session;
 		if (initSchema) {
 			createKeyspace();
 			createAoisTable();
