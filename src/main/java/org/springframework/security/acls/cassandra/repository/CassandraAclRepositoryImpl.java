@@ -98,7 +98,7 @@ public class CassandraAclRepositoryImpl implements CassandraAclRepository {
 		
 		ResultSet resultSet = session.execute(QueryBuilder.select().all().from(KEYSPACE, AOI_TABLE).where(QueryBuilder.in("id", ids.toArray())));
 		for (Row row : resultSet.all()) {
-			resultMap.put(covertToAclObjectIdentity(row, true), new TreeSet<AclEntry>(new Comparator<AclEntry>() {
+			resultMap.put(convertToAclObjectIdentity(row, true), new TreeSet<AclEntry>(new Comparator<AclEntry>() {
 
 				public int compare(AclEntry o1, AclEntry o2) {
 					return Integer.compare(o1.getOrder(), o2.getOrder());
@@ -142,7 +142,7 @@ public class CassandraAclRepositoryImpl implements CassandraAclRepository {
 		}
 
 		Row row = session.execute(QueryBuilder.select().all().from(KEYSPACE, AOI_TABLE).where(QueryBuilder.eq("id", objectId.getRowId()))).one();
-		AclObjectIdentity objectIdentity = covertToAclObjectIdentity(row, true);
+		AclObjectIdentity objectIdentity = convertToAclObjectIdentity(row, true);
 
 		if (LOG.isDebugEnabled()) {
 			LOG.debug("END findAclObjectIdentity: objectIdentity: " + objectIdentity);
@@ -161,7 +161,7 @@ public class CassandraAclRepositoryImpl implements CassandraAclRepository {
 		ResultSet resultSet = session.execute(QueryBuilder.select().all().from(KEYSPACE, CHILDREN_TABLE)
 				.where(QueryBuilder.eq("id", objectId.getRowId())));
 		for (Row row : resultSet.all()) {
-			result.add(covertToAclObjectIdentity(row, false));
+			result.add(convertToAclObjectIdentity(row, false));
 		}
 
 		if (LOG.isDebugEnabled()) {
@@ -272,7 +272,7 @@ public class CassandraAclRepositoryImpl implements CassandraAclRepository {
 		Assert.notNull(aoi.getObjectClass(), "The AclObjectIdentity objectClass cannot be null");
 	}
 	
-	private AclObjectIdentity covertToAclObjectIdentity(Row row, boolean fullObject) {
+	private AclObjectIdentity convertToAclObjectIdentity(Row row, boolean fullObject) {
 		AclObjectIdentity result = null;
 		if (row != null) {
 			result = new AclObjectIdentity();
