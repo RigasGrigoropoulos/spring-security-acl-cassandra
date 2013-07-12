@@ -85,7 +85,7 @@ public class CassandraAclServiceTest {
 		session = cluster.connect();
 		repository.createKeyspace();
 		repository.createAoisTable();
-		repository.createAlcsTable();
+		repository.createAclsTable();
 		repository.createChilrenTable();
 
 		SecurityContextHolder.getContext().setAuthentication(

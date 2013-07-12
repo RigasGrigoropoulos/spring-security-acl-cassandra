@@ -76,7 +76,7 @@ public class CassandraAclRepositoryImpl implements CassandraAclRepository {
 			createKeyspace();
 			createAoisTable();
 			createChilrenTable();
-			createAlcsTable();
+			createAclsTable();
 		}
 		insertAoiStatement = session.prepare(INSERT_AOI);
 		insertChildStatement = session.prepare(INSERT_CHILD);
@@ -320,7 +320,7 @@ public class CassandraAclRepositoryImpl implements CassandraAclRepository {
 		}
 	}
 	
-	public void createAlcsTable() {
+	public void createAclsTable() {
 		try {
 			session.execute("CREATE TABLE " + KEYSPACE + ".acls (" 
 					+ "id varchar," 					
