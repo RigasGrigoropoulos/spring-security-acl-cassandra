@@ -14,10 +14,22 @@
  */
 package org.springframework.security.acls.cassandra.repository.exceptions;
 
+/**
+ * Thrown if an <code>AclObjectIdentity</code> already exists for the object.
+ * 
+ * @author Rigas Grigoropoulos
+ *
+ */
 public class AclAlreadyExistsException extends RuntimeException {
 
 	private static final long serialVersionUID = 1891804328079992377L;
 
+	/**
+	 * Constructs a new <code>AclAlreadyExistsException</code> with the specified detail message.
+	 * 
+	 * @param message the detail message. The detail message is saved for
+     *          later retrieval by the {@link #getMessage()} method.
+	 */
 	public AclAlreadyExistsException(String message) {
 		super(message);
 	}

@@ -24,18 +24,46 @@ import org.springframework.security.acls.cassandra.repository.exceptions.AclAlre
 import org.springframework.security.acls.cassandra.repository.exceptions.AclNotFoundException;
 
 
+/**
+ * @author Rigas Grigoropoulos
+ *
+ */
 public interface CassandraAclRepository {
 
+	/**
+	 * @param objectIdsToLookup
+	 * @return
+	 */
 	Map<AclObjectIdentity, Set<AclEntry>> findAcls(List<AclObjectIdentity> objectIdsToLookup);
 
+	/**
+	 * @param objectId
+	 * @return
+	 */
 	AclObjectIdentity findAclObjectIdentity(AclObjectIdentity objectId);
 	
+	/**
+	 * @param objectId
+	 * @return
+	 */
 	List<AclObjectIdentity> findAclObjectIdentityChildren(AclObjectIdentity objectId);
 
+	/**
+	 * @param objectIdsToDelete
+	 */
 	void deleteAcls(List<AclObjectIdentity> objectIdsToDelete);
 
+	/**
+	 * @param aoi
+	 * @throws AclAlreadyExistsException
+	 */
 	void saveAcl(AclObjectIdentity aoi) throws AclAlreadyExistsException;	
 	
+	/**
+	 * @param aoi
+	 * @param entries
+	 * @throws AclNotFoundException
+	 */
 	void updateAcl(AclObjectIdentity aoi, List<AclEntry> entries) throws AclNotFoundException;	
 
 }

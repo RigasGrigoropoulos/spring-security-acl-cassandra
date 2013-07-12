@@ -39,6 +39,12 @@ import com.datastax.driver.core.Session;
 import com.datastax.driver.core.exceptions.AlreadyExistsException;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
 
+/**
+ * Implementation of <code>CassandraAclRepository</code> using the DataStax Java Driver.
+ * 
+ * @author Rigas Grigoropoulos
+ *
+ */
 public class CassandraAclRepositoryImpl implements CassandraAclRepository {
 
 	private static final Log LOG = LogFactory.getLog(CassandraAclRepositoryImpl.class);
@@ -63,6 +69,11 @@ public class CassandraAclRepositoryImpl implements CassandraAclRepository {
 
 	private Session session;
 
+	/**
+	 * Constructs a new <code>CassandraAclRepositoryImpl</code>.
+	 * 
+	 * @param session the <code>Session</code> to use for connectivity with Cassandra.
+	 */
 	public CassandraAclRepositoryImpl(Session session) {
 		this.session = session;
 		insertAoiStatement = session.prepare(INSERT_AOI);
@@ -70,6 +81,13 @@ public class CassandraAclRepositoryImpl implements CassandraAclRepository {
 		insertAclStatement = session.prepare(INSERT_ACL);
 	}
 	
+	/**
+	 * Constructs a new <code>CassandraAclRepositoryImpl</code> and optionally creates 
+	 * the Cassandra keyspace and schema for storing ACLs.
+	 * 
+	 * @param session the <code>Session</code> to use for connectivity with Cassandra.
+	 * @param initSchema whether the keyspace and schema for storing ACLs should be created.
+	 */
 	public CassandraAclRepositoryImpl(Session session, boolean initSchema) {
 		this.session = session;
 		if (initSchema) {
@@ -83,6 +101,9 @@ public class CassandraAclRepositoryImpl implements CassandraAclRepository {
 		insertAclStatement = session.prepare(INSERT_ACL);
 	}
 
+	/* (non-Javadoc)
+	 * @see org.springframework.security.acls.cassandra.repository.CassandraAclRepository#findAcls(java.util.List)
+	 */
 	public Map<AclObjectIdentity, Set<AclEntry>> findAcls(List<AclObjectIdentity> objectIdsToLookup) {
 		assertAclObjectIdentityList(objectIdsToLookup);
 
@@ -134,6 +155,9 @@ public class CassandraAclRepositoryImpl implements CassandraAclRepository {
 		return resultMap;
 	}
 
+	/* (non-Javadoc)
+	 * @see org.springframework.security.acls.cassandra.repository.CassandraAclRepository#findAclObjectIdentity(org.springframework.security.acls.cassandra.model.AclObjectIdentity)
+	 */
 	public AclObjectIdentity findAclObjectIdentity(AclObjectIdentity objectId) {
 		assertAclObjectIdentity(objectId);
 
@@ -150,6 +174,9 @@ public class CassandraAclRepositoryImpl implements CassandraAclRepository {
 		return objectIdentity;
 	}
 
+	/* (non-Javadoc)
+	 * @see org.springframework.security.acls.cassandra.repository.CassandraAclRepository#findAclObjectIdentityChildren(org.springframework.security.acls.cassandra.model.AclObjectIdentity)
+	 */
 	public List<AclObjectIdentity> findAclObjectIdentityChildren(AclObjectIdentity objectId) {
 		assertAclObjectIdentity(objectId);
 
@@ -170,6 +197,9 @@ public class CassandraAclRepositoryImpl implements CassandraAclRepository {
 		return result;
 	}
 
+	/* (non-Javadoc)
+	 * @see org.springframework.security.acls.cassandra.repository.CassandraAclRepository#deleteAcls(java.util.List)
+	 */
 	public void deleteAcls(List<AclObjectIdentity> objectIdsToDelete) {
 		assertAclObjectIdentityList(objectIdsToDelete);
 
@@ -189,6 +219,9 @@ public class CassandraAclRepositoryImpl implements CassandraAclRepository {
 		}
 	}
 
+	/* (non-Javadoc)
+	 * @see org.springframework.security.acls.cassandra.repository.CassandraAclRepository#saveAcl(org.springframework.security.acls.cassandra.model.AclObjectIdentity)
+	 */
 	public void saveAcl(AclObjectIdentity aoi) throws AclAlreadyExistsException {
 		assertAclObjectIdentity(aoi);
 
@@ -215,6 +248,9 @@ public class CassandraAclRepositoryImpl implements CassandraAclRepository {
 		}
 	}
 
+	/* (non-Javadoc)
+	 * @see org.springframework.security.acls.cassandra.repository.CassandraAclRepository#updateAcl(org.springframework.security.acls.cassandra.model.AclObjectIdentity, java.util.List)
+	 */
 	public void updateAcl(AclObjectIdentity aoi, List<AclEntry> entries) throws AclNotFoundException {
 		assertAclObjectIdentity(aoi);
 
@@ -259,6 +295,9 @@ public class CassandraAclRepositoryImpl implements CassandraAclRepository {
 		}
 	}
 
+	/**
+	 * @param aoiList
+	 */
 	private void assertAclObjectIdentityList(List<AclObjectIdentity> aoiList) {
 		Assert.notEmpty(aoiList, "The AclObjectIdentity list cannot be empty");
 		for (AclObjectIdentity aoi : aoiList) {
@@ -266,12 +305,20 @@ public class CassandraAclRepositoryImpl implements CassandraAclRepository {
 		}
 	}
 
+	/**
+	 * @param aoi
+	 */
 	private void assertAclObjectIdentity(AclObjectIdentity aoi) {
 		Assert.notNull(aoi, "The AclObjectIdentity cannot be null");
 		Assert.notNull(aoi.getId(), "The AclObjectIdentity id cannot be null");
 		Assert.notNull(aoi.getObjectClass(), "The AclObjectIdentity objectClass cannot be null");
 	}
 	
+	/**
+	 * @param row
+	 * @param fullObject
+	 * @return
+	 */
 	private AclObjectIdentity convertToAclObjectIdentity(Row row, boolean fullObject) {
 		AclObjectIdentity result = null;
 		if (row != null) {
@@ -289,6 +336,9 @@ public class CassandraAclRepositoryImpl implements CassandraAclRepository {
 		return result;
 	}
 	
+	/**
+	 * Creates the schema for the table holding <code>AclObjectIdentity</code> representations.
+	 */
 	public void createAoisTable() {
 		try {
 			session.execute("CREATE TABLE " + KEYSPACE + ".aois (" 
@@ -306,6 +356,9 @@ public class CassandraAclRepositoryImpl implements CassandraAclRepository {
 		}
 	}
 	
+	/**
+	 * Creates the schema for the table holding <code>AclObjectIdentity</code> children.
+	 */
 	public void createChilrenTable() {
 		try {
 			session.execute("CREATE TABLE " + KEYSPACE + ".children (" 
@@ -320,6 +373,9 @@ public class CassandraAclRepositoryImpl implements CassandraAclRepository {
 		}
 	}
 	
+	/**
+	 * Creates the schema for the table holding <code>AclEntry</code> representations.
+	 */
 	public void createAclsTable() {
 		try {
 			session.execute("CREATE TABLE " + KEYSPACE + ".acls (" 
@@ -338,10 +394,13 @@ public class CassandraAclRepositoryImpl implements CassandraAclRepository {
 		}
 	}
 
+	/**
+	 * Creates the schema for the 'SpringSecurityAclCassandra' keyspace.
+	 */
 	public void createKeyspace() {	
 		try {
 			session.execute("CREATE KEYSPACE " + KEYSPACE 
-					+ " WITH replication " + "= {'class':'SimpleStrategy', 'replication_factor':3};");
+					+ " WITH replication " + "= {'class':'SimpleStrategy', 'replication_factor':3};"); // TODO: externalize strategy and replication factor
 		} catch (AlreadyExistsException e) {
 			LOG.warn(e);
 		}

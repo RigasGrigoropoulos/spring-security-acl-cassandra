@@ -20,6 +20,12 @@ import org.springframework.security.acls.model.AccessControlEntry;
 import org.springframework.security.acls.model.AuditableAccessControlEntry;
 import org.springframework.security.acls.model.Sid;
 
+/**
+ * DTO representing an individual permission assignment.
+ * 
+ * @author Rigas Grigoropoulos
+ *
+ */
 public class AclEntry {
 
 	// id pattern: objectClass:objectId:sid:order
@@ -32,8 +38,16 @@ public class AclEntry {
 	private boolean auditSuccess;
 	private boolean auditFailure;
 
+	/**
+	 * Constructs a new <code>AclEntry</code>.
+	 */
 	public AclEntry() {}
 	
+	/**
+	 * Constructs a new <code>AclEntry</code> out of the provided <code>AccessControlEntry</code>.
+	 * 
+	 * @param ace the <code>AccessControlEntry</code> to use for parameter population.
+	 */
 	public AclEntry(AccessControlEntry ace) {
 		granting = ace.isGranting();
 		id = (String) ace.getId();
@@ -57,26 +71,46 @@ public class AclEntry {
 		}
 	}
 	
+	/**
+	 * @return the identifier of this <code>AclEntry</code>. 
+	 * 		The identifier follows the pattern 'objectClass:objectId:sid:order'.
+	 */
 	public String getId() {
 		return id;
 	}
 
+	/**
+	 * @param id the identifier for this <code>AclEntry</code>. 
+	 */
 	public void setId(String id) {
 		this.id = id;
 	}
 
+	/**
+	 * @return true if the Sid for this <code>AclEntry</code> is of type <code>PrincipalSid</code>
+	 * 		of false if it is of type <code>GrantedAuthoritySid</code>. 
+	 */
 	public boolean isSidPrincipal() {
 		return sidPrincipal;
 	}
 
+	/**
+	 * @param sidPrincipal whether the Sid for this <code>AclEntry</code> is of type <code>PrincipalSid</code>.
+	 */
 	public void setSidPrincipal(boolean sidPrincipal) {
 		this.sidPrincipal = sidPrincipal;
 	}
 
+	/**
+	 * @return the identifier of the Sid for this <code>AclEntry</code>.
+	 */
 	public String getSid() {
 		return sid;
 	}
 	
+	/**
+	 * @return the <code>Sid</code> object for this <code>AclEntry</code>.
+	 */
 	public Sid getSidObject() {
 		Sid result = null;
 		if (sidPrincipal) {
@@ -87,50 +121,86 @@ public class AclEntry {
 		return result;
 	}
 
+	/**
+	 * @param sid the identifier of the Sid for this <code>AclEntry</code>.
+	 */
 	public void setSid(String sid) {
 		this.sid = sid;
 	}
 
+	/**
+	 * @return
+	 */
 	public int getOrder() {
 		return order;
 	}
 
+	/**
+	 * @param order
+	 */
 	public void setOrder(int order) {
 		this.order = order;
 	}
 
+	/**
+	 * @return
+	 */
 	public int getMask() {
 		return mask;
 	}
 
+	/**
+	 * @param mask
+	 */
 	public void setMask(int mask) {
 		this.mask = mask;
 	}
 
+	/**
+	 * @return
+	 */
 	public boolean isGranting() {
 		return granting;
 	}
 
+	/**
+	 * @param granting
+	 */
 	public void setGranting(boolean granting) {
 		this.granting = granting;
 	}
 
+	/**
+	 * @return
+	 */
 	public boolean isAuditSuccess() {
 		return auditSuccess;
 	}
 
+	/**
+	 * @param auditSuccess
+	 */
 	public void setAuditSuccess(boolean auditSuccess) {
 		this.auditSuccess = auditSuccess;
 	}
 
+	/**
+	 * @return
+	 */
 	public boolean isAuditFailure() {
 		return auditFailure;
 	}
 
+	/**
+	 * @param auditFailure
+	 */
 	public void setAuditFailure(boolean auditFailure) {
 		this.auditFailure = auditFailure;
 	}
 
+	/* (non-Javadoc)
+	 * @see java.lang.Object#toString()
+	 */
 	@Override
 	public String toString() {
 		StringBuilder sb = new StringBuilder();

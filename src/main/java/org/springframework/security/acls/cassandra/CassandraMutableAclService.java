@@ -40,15 +40,30 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.util.Assert;
 
+/**
+ * Provides support for creating and storing <code>Acl</code> instances in Cassandra, using the <code>CassandraAclRepository</code>.
+ * 
+ * @author Rigas Grigoropoulos
+ *
+ */
 public class CassandraMutableAclService extends CassandraAclService implements MutableAclService {
 
 	private static final Log LOG = LogFactory.getLog(CassandraMutableAclService.class);
 
+	/**
+	 * @param aclRepository
+	 * @param aclCache
+	 * @param grantingStrategy
+	 * @param aclAuthorizationStrategy
+	 */
 	public CassandraMutableAclService(CassandraAclRepository aclRepository, AclCache aclCache,
 			PermissionGrantingStrategy grantingStrategy, AclAuthorizationStrategy aclAuthorizationStrategy) {
 		super(aclRepository, aclCache, grantingStrategy, aclAuthorizationStrategy);
 	}
 
+	/* (non-Javadoc)
+	 * @see org.springframework.security.acls.model.MutableAclService#createAcl(org.springframework.security.acls.model.ObjectIdentity)
+	 */
 	public MutableAcl createAcl(ObjectIdentity objectIdentity) throws AlreadyExistsException {
 		Assert.notNull(objectIdentity, "Object Identity required");
 		
@@ -82,6 +97,9 @@ public class CassandraMutableAclService extends CassandraAclService implements M
 		return (MutableAcl) acl;
 	}
 
+	/* (non-Javadoc)
+	 * @see org.springframework.security.acls.model.MutableAclService#deleteAcl(org.springframework.security.acls.model.ObjectIdentity, boolean)
+	 */
 	public void deleteAcl(ObjectIdentity objectIdentity, boolean deleteChildren) throws ChildrenExistException {
 		Assert.notNull(objectIdentity, "Object Identity required");
 		Assert.notNull(objectIdentity.getIdentifier(), "Object Identity doesn't provide an identifier");
@@ -121,6 +139,9 @@ public class CassandraMutableAclService extends CassandraAclService implements M
 		}
 	}
 	
+	/* (non-Javadoc)
+	 * @see org.springframework.security.acls.model.MutableAclService#updateAcl(org.springframework.security.acls.model.MutableAcl)
+	 */
 	public MutableAcl updateAcl(MutableAcl acl) throws NotFoundException {
 		Assert.notNull(acl, "MutableAcl required");
 		Assert.notNull(acl.getObjectIdentity(), "Object Identity required");
@@ -148,6 +169,10 @@ public class CassandraMutableAclService extends CassandraAclService implements M
 		return result;
 	}
 
+	/**
+	 * @param rootChild
+	 * @return
+	 */
 	private List<ObjectIdentity> calculateChildrenReccursively(ObjectIdentity rootChild) {
 		List<ObjectIdentity> result = new ArrayList<ObjectIdentity>();
 		result.add(rootChild);
@@ -160,6 +185,10 @@ public class CassandraMutableAclService extends CassandraAclService implements M
 		return result;		
 	}
 
+	/**
+	 * @param acl
+	 * @return
+	 */
 	private List<AclEntry> convertToAclEntries(Acl acl) {
 		List<AclEntry> result = new ArrayList<AclEntry>();
 		
@@ -169,6 +198,9 @@ public class CassandraMutableAclService extends CassandraAclService implements M
 		return result;
 	}
 
+	/**
+	 * @param objectIdentity
+	 */
 	private void clearCacheIncludingChildren(ObjectIdentity objectIdentity) {
 		Assert.notNull(objectIdentity, "ObjectIdentity required");
 		List<ObjectIdentity> children = findChildren(objectIdentity);

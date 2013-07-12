@@ -45,6 +45,12 @@ import org.springframework.security.acls.model.Sid;
 import org.springframework.security.util.FieldUtils;
 import org.springframework.util.Assert;
 
+/**
+ * Implementation of <code>AclService</code> using the <code>CassandraAclRepository</code> to access ACLs stored in Cassandra.
+ * 
+ * @author Rigas Grigoropoulos
+ *
+ */
 public class CassandraAclService implements AclService {
 
 	private static final Log LOG = LogFactory.getLog(CassandraAclService.class);
@@ -57,6 +63,12 @@ public class CassandraAclService implements AclService {
 
 	private final Field fieldAces = FieldUtils.getField(AclImpl.class, "aces");
 
+	/**
+	 * @param aclRepository
+	 * @param aclCache
+	 * @param grantingStrategy
+	 * @param aclAuthorizationStrategy
+	 */
 	public CassandraAclService(CassandraAclRepository aclRepository, AclCache aclCache, PermissionGrantingStrategy grantingStrategy,
 			AclAuthorizationStrategy aclAuthorizationStrategy) {
 		this.aclRepository = aclRepository;
@@ -66,6 +78,10 @@ public class CassandraAclService implements AclService {
 		this.fieldAces.setAccessible(true);
 	}
 
+	
+	/* (non-Javadoc)
+	 * @see org.springframework.security.acls.model.AclService#findChildren(org.springframework.security.acls.model.ObjectIdentity)
+	 */
 	public List<ObjectIdentity> findChildren(ObjectIdentity parentIdentity) {
 		Assert.notNull(parentIdentity, "Object to lookup required");
 		
@@ -88,20 +104,33 @@ public class CassandraAclService implements AclService {
 		return result;
 	}
 
+	/* (non-Javadoc)
+	 * @see org.springframework.security.acls.model.AclService#readAclById(org.springframework.security.acls.model.ObjectIdentity)
+	 */
 	public Acl readAclById(ObjectIdentity object) throws NotFoundException {
 		return readAclById(object, null);
 	}
 
+	
+	/* (non-Javadoc)
+	 * @see org.springframework.security.acls.model.AclService#readAclById(org.springframework.security.acls.model.ObjectIdentity, java.util.List)
+	 */
 	public Acl readAclById(ObjectIdentity object, List<Sid> sids) throws NotFoundException {
 		Map<ObjectIdentity, Acl> map = readAclsById(Arrays.asList(object), sids);
 		Assert.isTrue(map.containsKey(object), "There should have been an Acl entry for ObjectIdentity " + object);
 		return (Acl) map.get(object);
 	}
 
+	/* (non-Javadoc)
+	 * @see org.springframework.security.acls.model.AclService#readAclsById(java.util.List)
+	 */
 	public Map<ObjectIdentity, Acl> readAclsById(List<ObjectIdentity> objects) throws NotFoundException {
 		return readAclsById(objects, null);
 	}
 
+	/* (non-Javadoc)
+	 * @see org.springframework.security.acls.model.AclService#readAclsById(java.util.List, java.util.List)
+	 */
 	public Map<ObjectIdentity, Acl> readAclsById(List<ObjectIdentity> objects, List<Sid> sids) throws NotFoundException {
 		Assert.notEmpty(objects, "Objects to lookup required");
 		
@@ -154,6 +183,10 @@ public class CassandraAclService implements AclService {
 		return result;
 	}
 
+	/**
+	 * @param objects
+	 * @return
+	 */
 	private Map<ObjectIdentity, Acl> doLookup(List<ObjectIdentity> objects) {
 		Map<ObjectIdentity, Acl> result = new HashMap<ObjectIdentity, Acl>();
 		
@@ -176,6 +209,10 @@ public class CassandraAclService implements AclService {
 		return result;
 	}
 
+	/**
+	 * @param acls
+	 * @return
+	 */
 	private Map<ObjectIdentity, Acl> lookupParents(Set<AclObjectIdentity> acls) {
 		List<ObjectIdentity> objectsToLookup = new ArrayList<ObjectIdentity>();
 		for (AclObjectIdentity aoi : acls) {
@@ -187,9 +224,15 @@ public class CassandraAclService implements AclService {
 		return doLookup(objectsToLookup);
 	}
 
+	/**
+	 * @param aclObjectIdentity
+	 * @param aclEntries
+	 * @param parentAcl
+	 * @return
+	 */
 	private AclImpl convert(AclObjectIdentity aclObjectIdentity, Set<AclEntry> aclEntries, Acl parentAcl) {
 		AclImpl acl = new AclImpl(aclObjectIdentity.toObjectIdentity(), aclObjectIdentity.getId(),
-				aclAuthorizationStrategy, grantingStrategy, parentAcl, null, aclObjectIdentity.isEntriesInheriting(), aclObjectIdentity.getOwnerSId());
+				aclAuthorizationStrategy, grantingStrategy, parentAcl, null, aclObjectIdentity.isEntriesInheriting(), aclObjectIdentity.getOwnerSid());
 
 		List<AccessControlEntry> aces = new ArrayList<AccessControlEntry>(aclEntries.size());
 		for (AclEntry entry : aclEntries) {

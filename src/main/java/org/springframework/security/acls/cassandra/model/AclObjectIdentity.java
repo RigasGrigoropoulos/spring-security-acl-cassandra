@@ -22,6 +22,12 @@ import org.springframework.security.acls.model.ObjectIdentity;
 import org.springframework.security.acls.model.Sid;
 import org.springframework.util.Assert;
 
+/**
+ * DTO representing the identity of an individual domain object instance.
+ * 
+ * @author Rigas Grigoropoulos
+ *
+ */
 public class AclObjectIdentity {
 
 	private String id;
@@ -32,14 +38,27 @@ public class AclObjectIdentity {
 	private boolean ownerPrincipal;
 	private boolean entriesInheriting;
 
+	/**
+	 * Constructs a new <code>AclObjectIdentity</code>
+	 */
 	public AclObjectIdentity() {}
 	
+	/**
+	 * Constructs a new <code>AclObjectIdentity</code> out of the provided <code>ObjectIdentity</code>.
+	 * 
+	 * @param objectIdentity the <code>ObjectIdentity</code> to use for parameter population.
+	 */
 	public AclObjectIdentity(ObjectIdentity objectIdentity) {
 		Assert.notNull(objectIdentity, "ObjectIdentity required");
 		objectClass = objectIdentity.getType();
 		id = (String) objectIdentity.getIdentifier();
 	}
 	
+	/**
+	 * Constructs a new <code>AclObjectIdentity</code> out of the provided <code>Acl</code>.
+	 * 
+	 * @param acl the <code>Acl</code> to use for parameter population.
+	 */
 	public AclObjectIdentity(Acl acl) {
 		Assert.notNull(acl, "Acl required");		
 		entriesInheriting = acl.isEntriesInheriting();
@@ -58,43 +77,74 @@ public class AclObjectIdentity {
 		parentObjectClass = acl.getParentAcl() != null ? (String) acl.getParentAcl().getObjectIdentity().getType() : null;
 	}
 	
+	/**
+	 * @return the identifier of this <code>AclObjectIdentity</code>. 
+	 */
 	public String getId() {
 		return id;
 	}
 
+	/**
+	 * @param id the identifier of this <code>AclObjectIdentity</code>. 
+	 */
 	public void setId(String id) {
 		this.id = id;
 	}
 
+	/**
+	 * @return
+	 */
 	public String getObjectClass() {
 		return objectClass;
 	}
 
+	/**
+	 * @return true if the owner of this <code>AclObjectIdentity</code> is of type <code>PrincipalSid</code>
+	 * 		of false if it is of type <code>GrantedAuthoritySid</code>. 
+	 */
 	public boolean isOwnerPrincipal() {
 		return ownerPrincipal;
 	}
 
+	/**
+	 * @param ownerPrincipal whether the owner of this <code>AclObjectIdentity</code> is of type <code>PrincipalSid</code>.
+	 */
 	public void setOwnerPrincipal(boolean ownerPrincipal) {
 		this.ownerPrincipal = ownerPrincipal;
 	}
 
+	/**
+	 * @param objectClass
+	 */
 	public void setObjectClass(String objectClass) {
 		this.objectClass = objectClass;
 	}
 
+	/**
+	 * @return the identifier of the parent for this <code>AclObjectIdentity</code>. 
+	 */
 	public String getParentObjectId() {
 		return parentObjectId;
 	}
 
+	/**
+	 * @param parentObjectId the identifier of the parent for this <code>AclObjectIdentity</code>. 
+	 */
 	public void setParentObjectId(String parentObjectId) {
 		this.parentObjectId = parentObjectId;
 	}
 
+	/**
+	 * @return the identifier of the owner for this <code>AclObjectIdentity</code>.
+	 */
 	public String getOwnerId() {
 		return ownerId;
 	}
 	
-	public Sid getOwnerSId() {
+	/**
+	 * @return the <code>Sid</code> object of the owner for this <code>AclObjectIdentity</code>.
+	 */
+	public Sid getOwnerSid() {
 		Sid result = null;
 		if (ownerPrincipal) {
 			result = new PrincipalSid(ownerId);
@@ -104,22 +154,37 @@ public class AclObjectIdentity {
 		return result;
 	}
 
+	/**
+	 * @param ownerId the identifier of the owner for this <code>AclObjectIdentity</code>.
+	 */
 	public void setOwnerId(String ownerId) {
 		this.ownerId = ownerId;
 	}
 
+	/**
+	 * @return
+	 */
 	public boolean isEntriesInheriting() {
 		return entriesInheriting;
 	}
 
+	/**
+	 * @param entriesInheriting
+	 */
 	public void setEntriesInheriting(boolean entriesInheriting) {
 		this.entriesInheriting = entriesInheriting;
 	}
 	
+	/**
+	 * @return
+	 */
 	public String getParentObjectClass() {
 		return parentObjectClass;
 	}
 	
+	/**
+	 * @return
+	 */
 	public ObjectIdentity getParentObjectIdentity() {
 		if (parentObjectClass != null && parentObjectId != null) {
 			return new ObjectIdentityImpl(parentObjectClass, parentObjectId);
@@ -127,18 +192,30 @@ public class AclObjectIdentity {
 		return null;
 	}
 
+	/**
+	 * @param parentObjectClass
+	 */
 	public void setParentObjectClass(String parentObjectClass) {
 		this.parentObjectClass = parentObjectClass;
 	}
 
+	/**
+	 * @return
+	 */
 	public ObjectIdentity toObjectIdentity() {
 		return new ObjectIdentityImpl(objectClass, id);
 	}
 	
+	/**
+	 * @return
+	 */
 	public String getRowId() {
 		return objectClass + ":" + id;
 	}
 	
+	/**
+	 * @return
+	 */
 	public String getParentRowId() {
 		if (parentObjectId != null && parentObjectClass != null) {
 			return parentObjectClass + ":" + parentObjectId;
@@ -146,6 +223,9 @@ public class AclObjectIdentity {
 		return null;
 	}
 
+	/* (non-Javadoc)
+	 * @see java.lang.Object#toString()
+	 */
 	@Override
 	public String toString() {
 		StringBuilder sb = new StringBuilder();
