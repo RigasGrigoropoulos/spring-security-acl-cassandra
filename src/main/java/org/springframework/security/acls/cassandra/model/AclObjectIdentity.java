@@ -92,7 +92,7 @@ public class AclObjectIdentity {
 	}
 
 	/**
-	 * @return
+	 * @return the type of the domain object managed by this <code>AclObjectIdentity</code>.
 	 */
 	public String getObjectClass() {
 		return objectClass;
@@ -114,7 +114,7 @@ public class AclObjectIdentity {
 	}
 
 	/**
-	 * @param objectClass
+	 * @param objectClass the type of the domain object managed by this <code>AclObjectIdentity</code>.
 	 */
 	public void setObjectClass(String objectClass) {
 		this.objectClass = objectClass;
@@ -162,28 +162,28 @@ public class AclObjectIdentity {
 	}
 
 	/**
-	 * @return
+	 * @return true if parent entries inherit into the current <code>AclObjectIdentity</code>.
 	 */
 	public boolean isEntriesInheriting() {
 		return entriesInheriting;
 	}
 
 	/**
-	 * @param entriesInheriting
+	 * @param entriesInheriting true if parent entries inherit into the current <code>AclObjectIdentity</code>.
 	 */
 	public void setEntriesInheriting(boolean entriesInheriting) {
 		this.entriesInheriting = entriesInheriting;
 	}
 	
 	/**
-	 * @return
+	 * @return the type of the domain object of the parent of this <code>AclObjectIdentity</code>.
 	 */
 	public String getParentObjectClass() {
 		return parentObjectClass;
 	}
 	
 	/**
-	 * @return
+	 * @return the {@link ObjectIdentity} for the parent of this <code>AclObjectIdentity</code>.
 	 */
 	public ObjectIdentity getParentObjectIdentity() {
 		if (parentObjectClass != null && parentObjectId != null) {
@@ -193,28 +193,28 @@ public class AclObjectIdentity {
 	}
 
 	/**
-	 * @param parentObjectClass
+	 * @param parentObjectClass the type of the domain object of the parent of this <code>AclObjectIdentity</code>.
 	 */
 	public void setParentObjectClass(String parentObjectClass) {
 		this.parentObjectClass = parentObjectClass;
 	}
 
 	/**
-	 * @return
+	 * @return the {@link ObjectIdentity} for this <code>AclObjectIdentity</code>.
 	 */
 	public ObjectIdentity toObjectIdentity() {
 		return new ObjectIdentityImpl(objectClass, id);
 	}
 	
 	/**
-	 * @return
+	 * @return the primary key under which this <code>AclObjectIdentity</code> is stored in the database.
 	 */
 	public String getRowId() {
 		return objectClass + ":" + id;
 	}
 	
 	/**
-	 * @return
+	 * @return the primary key under which the parent of this <code>AclObjectIdentity</code> is stored in the database.
 	 */
 	public String getParentRowId() {
 		if (parentObjectId != null && parentObjectClass != null) {

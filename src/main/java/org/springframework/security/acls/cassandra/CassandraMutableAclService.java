@@ -51,10 +51,12 @@ public class CassandraMutableAclService extends CassandraAclService implements M
 	private static final Log LOG = LogFactory.getLog(CassandraMutableAclService.class);
 
 	/**
-	 * @param aclRepository
-	 * @param aclCache
-	 * @param grantingStrategy
-	 * @param aclAuthorizationStrategy
+	 * Constructs a new <code>CassandraMutableAclService</code> object.
+	 * 
+	 * @param aclRepository the {@link CassandraAclRepository} to use for access to the database.
+	 * @param aclCache the {@link AclCache} to use (can be <code>null</code>).
+	 * @param grantingStrategy the {@link PermissionGrantingStrategy} to use when creating {@link Acl} objects.
+	 * @param aclAuthorizationStrategy the {@link AclAuthorizationStrategy} to use when creating {@link Acl} objects.
 	 */
 	public CassandraMutableAclService(CassandraAclRepository aclRepository, AclCache aclCache,
 			PermissionGrantingStrategy grantingStrategy, AclAuthorizationStrategy aclAuthorizationStrategy) {
@@ -93,7 +95,7 @@ public class CassandraMutableAclService extends CassandraAclService implements M
 
 		if (LOG.isDebugEnabled()) {
 			LOG.debug("END createAcl: acl: " + acl);
-		}
+		} 
 		return (MutableAcl) acl;
 	}
 
@@ -170,8 +172,10 @@ public class CassandraMutableAclService extends CassandraAclService implements M
 	}
 
 	/**
-	 * @param rootChild
-	 * @return
+	 * Finds the complete children hierarchy starting from the provided {@link ObjectIdentity}.
+	 * 
+	 * @param rootChild the root {@link ObjectIdentity} to start looking for children.
+	 * @return a list of all child {@link ObjectIdentity} objects, including the provided root object.
 	 */
 	private List<ObjectIdentity> calculateChildrenReccursively(ObjectIdentity rootChild) {
 		List<ObjectIdentity> result = new ArrayList<ObjectIdentity>();
@@ -186,8 +190,10 @@ public class CassandraMutableAclService extends CassandraAclService implements M
 	}
 
 	/**
-	 * @param acl
-	 * @return
+	 * Converts an {@link Acl} to a list of {@link AclEntry} objects.
+	 * 
+	 * @param acl the {@link Acl} to convert.
+	 * @return the list of derived {@link AclEntry} objects.
 	 */
 	private List<AclEntry> convertToAclEntries(Acl acl) {
 		List<AclEntry> result = new ArrayList<AclEntry>();
@@ -199,7 +205,9 @@ public class CassandraMutableAclService extends CassandraAclService implements M
 	}
 
 	/**
-	 * @param objectIdentity
+	 * Evicts the provided {@link ObjectIdentity} and the complete children hierarchy from the cache.
+	 * 
+	 * @param objectIdentity the parent {@link ObjectIdentity} to evict.
 	 */
 	private void clearCacheIncludingChildren(ObjectIdentity objectIdentity) {
 		Assert.notNull(objectIdentity, "ObjectIdentity required");

@@ -64,10 +64,12 @@ public class CassandraAclService implements AclService {
 	private final Field fieldAces = FieldUtils.getField(AclImpl.class, "aces");
 
 	/**
-	 * @param aclRepository
-	 * @param aclCache
-	 * @param grantingStrategy
-	 * @param aclAuthorizationStrategy
+	 * Constructs a new <code>CassandraAclService</code> object.
+	 * 
+	 * @param aclRepository the {@link CassandraAclRepository} to use for access to the database.
+	 * @param aclCache the {@link AclCache} to use (can be <code>null</code>).
+	 * @param grantingStrategy the {@link PermissionGrantingStrategy} to use when creating {@link Acl} objects.
+	 * @param aclAuthorizationStrategy the {@link AclAuthorizationStrategy} to use when creating {@link Acl} objects.
 	 */
 	public CassandraAclService(CassandraAclRepository aclRepository, AclCache aclCache, PermissionGrantingStrategy grantingStrategy,
 			AclAuthorizationStrategy aclAuthorizationStrategy) {
@@ -184,8 +186,10 @@ public class CassandraAclService implements AclService {
 	}
 
 	/**
-	 * @param objects
-	 * @return
+	 * Request Acls from the {@link CassandraAclRepository} and convert results.
+	 * 
+	 * @param objects a list of {@link ObjectIdentity} objects to lookup.
+	 * @return a map with {@link ObjectIdentity} instances as keys and {@link Acl} instances as values.
 	 */
 	private Map<ObjectIdentity, Acl> doLookup(List<ObjectIdentity> objects) {
 		Map<ObjectIdentity, Acl> result = new HashMap<ObjectIdentity, Acl>();
@@ -210,8 +214,10 @@ public class CassandraAclService implements AclService {
 	}
 
 	/**
-	 * @param acls
-	 * @return
+	 * Finds the parents of the provided {@link ObjectIdentity} objects.
+	 * 
+	 * @param acls a set of {@link AclObjectIdentity} objects to find the parents of.
+	 * @return a map of the parents, with {@link ObjectIdentity} instances as keys and {@link Acl} instances as values.
 	 */
 	private Map<ObjectIdentity, Acl> lookupParents(Set<AclObjectIdentity> acls) {
 		List<ObjectIdentity> objectsToLookup = new ArrayList<ObjectIdentity>();
@@ -225,10 +231,12 @@ public class CassandraAclService implements AclService {
 	}
 
 	/**
-	 * @param aclObjectIdentity
-	 * @param aclEntries
-	 * @param parentAcl
-	 * @return
+	 * Creates an {@link AclImpl} instance out of the provided data.
+	 * 
+	 * @param aclObjectIdentity the {@link AclObjectIdentity} holding the basic Acl data.
+	 * @param aclEntries a set of {@link AclEntry} objects to be converted to {@link AccessControlEntry} objects.
+	 * @param parentAcl the parent {@link Acl}.
+	 * @return an {@link AclImpl} instance.
 	 */
 	private AclImpl convert(AclObjectIdentity aclObjectIdentity, Set<AclEntry> aclEntries, Acl parentAcl) {
 		AclImpl acl = new AclImpl(aclObjectIdentity.toObjectIdentity(), aclObjectIdentity.getId(),

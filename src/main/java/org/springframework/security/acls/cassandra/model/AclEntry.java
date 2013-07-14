@@ -129,70 +129,72 @@ public class AclEntry {
 	}
 
 	/**
-	 * @return
+	 * @return the order of this <code>AclEntry</code> in the list of Acl entries for the 
+	 * 		related domain object.
 	 */
 	public int getOrder() {
 		return order;
 	}
 
 	/**
-	 * @param order
+	 * @param order the order of this <code>AclEntry</code> in the list of Acl entries for the 
+	 * 		related domain object.
 	 */
 	public void setOrder(int order) {
 		this.order = order;
 	}
 
 	/**
-	 * @return
+	 * @return the bits that represent the permission.
 	 */
 	public int getMask() {
 		return mask;
 	}
 
 	/**
-	 * @param mask
+	 * @param mask the bits that represent the permission.
 	 */
 	public void setMask(int mask) {
 		this.mask = mask;
 	}
 
 	/**
-	 * @return
+	 * @return true if permission is being granted, false if is being revoked/blocked.
 	 */
 	public boolean isGranting() {
 		return granting;
 	}
 
 	/**
-	 * @param granting
+	 * @param granting true if permission is being granted, false if is being revoked/blocked.
 	 */
 	public void setGranting(boolean granting) {
 		this.granting = granting;
 	}
 
 	/**
-	 * @return
+	 * @return true if auditing is enabled for success, false otherwise.
 	 */
 	public boolean isAuditSuccess() {
 		return auditSuccess;
 	}
 
 	/**
-	 * @param auditSuccess
+	 * @param auditSuccess true if auditing is enabled for success, false otherwise.
 	 */
 	public void setAuditSuccess(boolean auditSuccess) {
 		this.auditSuccess = auditSuccess;
 	}
 
 	/**
-	 * @return
+	 * @return true if auditing is enabled for failure, false otherwise.
 	 */
 	public boolean isAuditFailure() {
 		return auditFailure;
 	}
 
 	/**
-	 * @param auditFailure
+	 * @param auditFailure true if auditing is enabled for failure, false otherwise.
 	 */
 	public void setAuditFailure(boolean auditFailure) {
 		this.auditFailure = auditFailure;
