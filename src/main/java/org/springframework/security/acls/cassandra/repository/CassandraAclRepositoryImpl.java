@@ -296,7 +296,9 @@ public class CassandraAclRepositoryImpl implements CassandraAclRepository {
 	}
 
 	/**
-	 * @param aoiList
+	 * Validates all <code>AclObjectIdentity</code> objects in the list.
+	 * 
+	 * @param aoiList a list of <code>AclObjectIdentity</code> objects to validate.
 	 */
 	private void assertAclObjectIdentityList(List<AclObjectIdentity> aoiList) {
 		Assert.notEmpty(aoiList, "The AclObjectIdentity list cannot be empty");
@@ -306,7 +308,9 @@ public class CassandraAclRepositoryImpl implements CassandraAclRepository {
 	}
 
 	/**
-	 * @param aoi
+	 * Validates an <code>AclObjectIdentity</code> object.
+	 * 
+	 * @param aoi the <code>AclObjectIdentity</code> object to validate.
 	 */
 	private void assertAclObjectIdentity(AclObjectIdentity aoi) {
 		Assert.notNull(aoi, "The AclObjectIdentity cannot be null");
@@ -315,9 +319,12 @@ public class CassandraAclRepositoryImpl implements CassandraAclRepository {
 	}
 	
 	/**
-	 * @param row
-	 * @param fullObject
-	 * @return
+	 * Converts a <code>Row</code> from a Cassandra result to an <code>AclObjectIdentity</code> object.
+	 * 
+	 * @param row the <code>Row</code> representing an <code>AclObjectIdentity</code>. 
+	 * @param fullObject whether the returned <code>AclObjectIdentity</code> object will 
+	 * 		contain only identification parameters or will be fully populated.
+	 * @return an <code>AclObjectIdentity</code> object with the values retrieved from Cassandra.
 	 */
 	private AclObjectIdentity convertToAclObjectIdentity(Row row, boolean fullObject) {
 		AclObjectIdentity result = null;

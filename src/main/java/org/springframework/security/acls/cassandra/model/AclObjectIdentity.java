@@ -44,9 +44,9 @@ public class AclObjectIdentity {
 	public AclObjectIdentity() {}
 	
 	/**
-	 * Constructs a new <code>AclObjectIdentity</code> out of the provided <code>ObjectIdentity</code>.
+	 * Constructs a new <code>AclObjectIdentity</code> out of the provided {@link ObjectIdentity}.
 	 * 
-	 * @param objectIdentity the <code>ObjectIdentity</code> to use for parameter population.
+	 * @param objectIdentity the {@link ObjectIdentity} to use for parameter population.
 	 */
 	public AclObjectIdentity(ObjectIdentity objectIdentity) {
 		Assert.notNull(objectIdentity, "ObjectIdentity required");
@@ -55,9 +55,9 @@ public class AclObjectIdentity {
 	}
 	
 	/**
-	 * Constructs a new <code>AclObjectIdentity</code> out of the provided <code>Acl</code>.
+	 * Constructs a new <code>AclObjectIdentity</code> out of the provided {@link Acl}.
 	 * 
-	 * @param acl the <code>Acl</code> to use for parameter population.
+	 * @param acl the {@link Acl} to use for parameter population.
 	 */
 	public AclObjectIdentity(Acl acl) {
 		Assert.notNull(acl, "Acl required");		
@@ -99,15 +99,15 @@ public class AclObjectIdentity {
 	}
 
 	/**
-	 * @return true if the owner of this <code>AclObjectIdentity</code> is of type <code>PrincipalSid</code>
-	 * 		of false if it is of type <code>GrantedAuthoritySid</code>. 
+	 * @return true if the owner of this <code>AclObjectIdentity</code> is of type {@link PrincipalSid}
+	 * 		of false if it is of type {@link GrantedAuthoritySid}. 
 	 */
 	public boolean isOwnerPrincipal() {
 		return ownerPrincipal;
 	}
 
 	/**
-	 * @param ownerPrincipal whether the owner of this <code>AclObjectIdentity</code> is of type <code>PrincipalSid</code>.
+	 * @param ownerPrincipal whether the owner of this <code>AclObjectIdentity</code> is of type {@link PrincipalSid}.
 	 */
 	public void setOwnerPrincipal(boolean ownerPrincipal) {
 		this.ownerPrincipal = ownerPrincipal;
@@ -142,7 +142,7 @@ public class AclObjectIdentity {
 	}
 	
 	/**
-	 * @return the <code>Sid</code> object of the owner for this <code>AclObjectIdentity</code>.
+	 * @return the {@link Sid} object of the owner for this <code>AclObjectIdentity</code>.
 	 */
 	public Sid getOwnerSid() {
 		Sid result = null;

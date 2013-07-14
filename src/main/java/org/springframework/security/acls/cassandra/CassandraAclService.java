@@ -46,7 +46,7 @@ import org.springframework.security.util.FieldUtils;
 import org.springframework.util.Assert;
 
 /**
- * Implementation of <code>AclService</code> using the <code>CassandraAclRepository</code> to access ACLs stored in Cassandra.
+ * Implementation of {@link AclService} using the {@link CassandraAclRepository} to access ACLs stored in Cassandra.
  * 
  * @author Rigas Grigoropoulos
  *

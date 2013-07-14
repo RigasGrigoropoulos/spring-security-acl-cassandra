@@ -41,7 +41,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.util.Assert;
 
 /**
- * Provides support for creating and storing <code>Acl</code> instances in Cassandra, using the <code>CassandraAclRepository</code>.
+ * Provides support for creating and storing {@link Acl} instances in Cassandra, using the {@link CassandraAclRepository}.
  * 
  * @author Rigas Grigoropoulos
  *

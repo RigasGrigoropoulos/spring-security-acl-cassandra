@@ -46,7 +46,7 @@ public class AclEntry {
 	/**
 	 * Constructs a new <code>AclEntry</code> out of the provided <code>AccessControlEntry</code>.
 	 * 
-	 * @param ace the <code>AccessControlEntry</code> to use for parameter population.
+	 * @param ace the {@link AccessControlEntry} to use for parameter population.
 	 */
 	public AclEntry(AccessControlEntry ace) {
 		granting = ace.isGranting();
@@ -87,15 +87,15 @@ public class AclEntry {
 	}
 
 	/**
-	 * @return true if the Sid for this <code>AclEntry</code> is of type <code>PrincipalSid</code>
-	 * 		of false if it is of type <code>GrantedAuthoritySid</code>. 
+	 * @return true if the Sid for this <code>AclEntry</code> is of type {@link PrincipalSid}
+	 * 		of false if it is of type {@link GrantedAuthoritySid}. 
 	 */
 	public boolean isSidPrincipal() {
 		return sidPrincipal;
 	}
 
 	/**
-	 * @param sidPrincipal whether the Sid for this <code>AclEntry</code> is of type <code>PrincipalSid</code>.
+	 * @param sidPrincipal whether the Sid for this <code>AclEntry</code> is of type {@link PrincipalSid}.
 	 */
 	public void setSidPrincipal(boolean sidPrincipal) {
 		this.sidPrincipal = sidPrincipal;
@@ -109,7 +109,7 @@ public class AclEntry {
 	}
 	
 	/**
-	 * @return the <code>Sid</code> object for this <code>AclEntry</code>.
+	 * @return the {@link Sid} object for this <code>AclEntry</code>.
 	 */
 	public Sid getSidObject() {
 		Sid result = null;
