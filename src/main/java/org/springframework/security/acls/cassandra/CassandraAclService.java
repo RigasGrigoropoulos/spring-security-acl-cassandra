@@ -31,7 +31,6 @@ import org.springframework.security.acls.cassandra.repository.CassandraAclReposi
 import org.springframework.security.acls.domain.AccessControlEntryImpl;
 import org.springframework.security.acls.domain.AclAuthorizationStrategy;
 import org.springframework.security.acls.domain.AclImpl;
-import org.springframework.security.acls.domain.DefaultPermissionFactory;
 import org.springframework.security.acls.domain.ObjectIdentityImpl;
 import org.springframework.security.acls.domain.PermissionFactory;
 import org.springframework.security.acls.model.AccessControlEntry;
@@ -57,7 +56,7 @@ public class CassandraAclService implements AclService {
 
 	protected final CassandraAclRepository aclRepository;
 	protected final AclCache aclCache;
-	private PermissionFactory permissionFactory = new DefaultPermissionFactory();
+	private PermissionFactory permissionFactory;
 	private AclAuthorizationStrategy aclAuthorizationStrategy;
 	private PermissionGrantingStrategy grantingStrategy;
 
@@ -70,13 +69,15 @@ public class CassandraAclService implements AclService {
 	 * @param aclCache the {@link AclCache} to use (can be <code>null</code>).
 	 * @param grantingStrategy the {@link PermissionGrantingStrategy} to use when creating {@link Acl} objects.
 	 * @param aclAuthorizationStrategy the {@link AclAuthorizationStrategy} to use when creating {@link Acl} objects.
+	 * @param permissionFactory the {@link PermissionFactory} to use when creating {@link AccessControlEntry} objects.
 	 */
 	public CassandraAclService(CassandraAclRepository aclRepository, AclCache aclCache, PermissionGrantingStrategy grantingStrategy,
-			AclAuthorizationStrategy aclAuthorizationStrategy) {
+			AclAuthorizationStrategy aclAuthorizationStrategy, PermissionFactory permissionFactory) {
 		this.aclRepository = aclRepository;
 		this.aclCache = aclCache;
 		this.grantingStrategy = grantingStrategy;
 		this.aclAuthorizationStrategy = aclAuthorizationStrategy;
+		this.permissionFactory = permissionFactory;
 		this.fieldAces.setAccessible(true);
 	}
 

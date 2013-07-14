@@ -25,6 +25,7 @@ import org.springframework.security.acls.cassandra.repository.CassandraAclReposi
 import org.springframework.security.acls.cassandra.repository.exceptions.AclAlreadyExistsException;
 import org.springframework.security.acls.cassandra.repository.exceptions.AclNotFoundException;
 import org.springframework.security.acls.domain.AclAuthorizationStrategy;
+import org.springframework.security.acls.domain.PermissionFactory;
 import org.springframework.security.acls.domain.PrincipalSid;
 import org.springframework.security.acls.model.AccessControlEntry;
 import org.springframework.security.acls.model.Acl;
@@ -57,10 +58,11 @@ public class CassandraMutableAclService extends CassandraAclService implements M
 	 * @param aclCache the {@link AclCache} to use (can be <code>null</code>).
 	 * @param grantingStrategy the {@link PermissionGrantingStrategy} to use when creating {@link Acl} objects.
 	 * @param aclAuthorizationStrategy the {@link AclAuthorizationStrategy} to use when creating {@link Acl} objects.
+	 * @param permissionFactory the {@link PermissionFactory} to use when creating {@link AccessControlEntry} objects.
 	 */
 	public CassandraMutableAclService(CassandraAclRepository aclRepository, AclCache aclCache,
-			PermissionGrantingStrategy grantingStrategy, AclAuthorizationStrategy aclAuthorizationStrategy) {
-		super(aclRepository, aclCache, grantingStrategy, aclAuthorizationStrategy);
+			PermissionGrantingStrategy grantingStrategy, AclAuthorizationStrategy aclAuthorizationStrategy, PermissionFactory permissionFactory) {
+		super(aclRepository, aclCache, grantingStrategy, aclAuthorizationStrategy, permissionFactory);
 	}
 
 	/* (non-Javadoc)

@@ -52,6 +52,8 @@ public class CassandraAclRepositoryImpl implements CassandraAclRepository {
 	private static final String AOI_TABLE = "aois";
 	private static final String CHILDREN_TABLE = "children";
 	private static final String ACL_TABLE = "acls";
+	private static final String REPLICATION_STRATEGY = "SimpleStrategy";
+	private static final int REPLICATION_FACTOR = 3;
 	
 	private static final String[] AOI_KEYS = new String[] { "id", "objId", "objClass", "isInheriting", "owner", "isOwnerPrincipal", "parentObjId", "parentObjClass" };
 	private static final String[] CHILD_KEYS = new String[] { "id", "childId", "objId", "objClass" };
@@ -405,7 +407,7 @@ public class CassandraAclRepositoryImpl implements CassandraAclRepository {
 	public void createKeyspace() {	
 		try {
 			session.execute("CREATE KEYSPACE " + KEYSPACE 
-					+ " WITH replication " + "= {'class':'SimpleStrategy', 'replication_factor':3};"); // TODO: externalize strategy and replication factor
+					+ " WITH replication " + "= {'class':'" + REPLICATION_STRATEGY + "', 'replication_factor':" + REPLICATION_FACTOR + "};");
 		} catch (AlreadyExistsException e) {
 			LOG.warn(e);
 		}
