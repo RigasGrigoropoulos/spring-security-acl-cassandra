@@ -31,12 +31,11 @@ import org.springframework.security.acls.cassandra.repository.exceptions.AclAlre
 import org.springframework.security.acls.cassandra.repository.exceptions.AclNotFoundException;
 import org.springframework.util.Assert;
 
-import com.datastax.driver.core.BoundStatement;
-import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.exceptions.AlreadyExistsException;
+import com.datastax.driver.core.querybuilder.Batch;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
 
 /**
@@ -53,19 +52,10 @@ public class CassandraAclRepositoryImpl implements CassandraAclRepository {
 	private static final String AOI_TABLE = "aois";
 	private static final String CHILDREN_TABLE = "children";
 	private static final String ACL_TABLE = "acls";
-	private static final String INSERT_AOI = "INSERT INTO " + KEYSPACE + "." + AOI_TABLE
-			+ " (id, objId, objClass, isInheriting, owner, isOwnerPrincipal, parentObjId, parentObjClass) " 
-			+ "VALUES (?, ?, ?, ?, ?, ?, ?, ?);";
-	private static final String INSERT_CHILD = "INSERT INTO " + KEYSPACE + "." + CHILDREN_TABLE
-			+ " (id, childId, objId, objClass) " 
-			+ "VALUES (?, ?, ?, ?);";
-	private static final String INSERT_ACL = "INSERT INTO " + KEYSPACE + "." + ACL_TABLE
-			+ " (id, aclOrder, sid, mask, isSidPrincipal, isGranting, isAuditSuccess, isAuditFailure) " 
-			+ "VALUES (?, ?, ?, ?, ?, ?, ?, ?);";
-
-	private final PreparedStatement insertAoiStatement;
-	private final PreparedStatement insertChildStatement;
-	private final PreparedStatement insertAclStatement;
+	
+	private static final String[] AOI_KEYS = new String[] { "id", "objId", "objClass", "isInheriting", "owner", "isOwnerPrincipal", "parentObjId", "parentObjClass" };
+	private static final String[] CHILD_KEYS = new String[] { "id", "childId", "objId", "objClass" };
+	private static final String[] ACL_KEYS = new String[] { "id", "aclOrder", "sid", "mask", "isSidPrincipal", "isGranting", "isAuditSuccess", "isAuditFailure" };
 
 	private Session session;
 
@@ -76,9 +66,6 @@ public class CassandraAclRepositoryImpl implements CassandraAclRepository {
 	 */
 	public CassandraAclRepositoryImpl(Session session) {
 		this.session = session;
-		insertAoiStatement = session.prepare(INSERT_AOI);
-		insertChildStatement = session.prepare(INSERT_CHILD);
-		insertAclStatement = session.prepare(INSERT_ACL);
 	}
 	
 	/**
@@ -89,16 +76,13 @@ public class CassandraAclRepositoryImpl implements CassandraAclRepository {
 	 * @param initSchema whether the keyspace and schema for storing ACLs should be created.
 	 */
 	public CassandraAclRepositoryImpl(Session session, boolean initSchema) {
-		this.session = session;
+		this(session);
 		if (initSchema) {
 			createKeyspace();
 			createAoisTable();
 			createChilrenTable();
 			createAclsTable();
 		}
-		insertAoiStatement = session.prepare(INSERT_AOI);
-		insertChildStatement = session.prepare(INSERT_CHILD);
-		insertAclStatement = session.prepare(INSERT_ACL);
 	}
 
 	/* (non-Javadoc)
@@ -211,8 +195,10 @@ public class CassandraAclRepositoryImpl implements CassandraAclRepository {
 		for (AclObjectIdentity entry : objectIdsToDelete) {
 			ids.add(entry.getRowId());
 		}
-		session.execute(QueryBuilder.delete().all().from(KEYSPACE, AOI_TABLE).where(QueryBuilder.in("id", ids.toArray())));
-		session.execute(QueryBuilder.delete().all().from(KEYSPACE, CHILDREN_TABLE).where(QueryBuilder.in("id", ids.toArray())));
+		Batch batch = QueryBuilder.batch();
+		batch.add(QueryBuilder.delete().all().from(KEYSPACE, AOI_TABLE).where(QueryBuilder.in("id", ids.toArray())));
+		batch.add(QueryBuilder.delete().all().from(KEYSPACE, CHILDREN_TABLE).where(QueryBuilder.in("id", ids.toArray())));
+		session.execute(batch);
 		
 		if (LOG.isDebugEnabled()) {
 			LOG.debug("END deleteAcls");
@@ -233,15 +219,15 @@ public class CassandraAclRepositoryImpl implements CassandraAclRepository {
 		if (findAclObjectIdentity(aoi) != null) {
 			throw new AclAlreadyExistsException("Object identity '" + aoi + "' already exists");
 		}
-
-		BoundStatement aoiBoundStatement = new BoundStatement(insertAoiStatement);		
-		session.execute(aoiBoundStatement.bind(aoi.getRowId(), aoi.getId(), aoi.getObjectClass(), aoi.isEntriesInheriting(),
-				aoi.getOwnerId(), aoi.isOwnerPrincipal(), aoi.getParentObjectId(), aoi.getParentObjectClass()));
+		
+		Batch batch = QueryBuilder.batch();
+		batch.add(QueryBuilder.insertInto(KEYSPACE, AOI_TABLE).values(AOI_KEYS, new Object[] { aoi.getRowId(), aoi.getId(), aoi.getObjectClass(), aoi.isEntriesInheriting(),
+				aoi.getOwnerId(), aoi.isOwnerPrincipal(), aoi.getParentObjectId(), aoi.getParentObjectClass() }));
 		
 		if (aoi.getParentRowId() != null) {
-			BoundStatement childBoundStatement = new BoundStatement(insertChildStatement);
-			session.execute(childBoundStatement.bind(aoi.getParentRowId(), aoi.getRowId(), aoi.getId(), aoi.getObjectClass()));
+			batch.add(QueryBuilder.insertInto(KEYSPACE, CHILDREN_TABLE).values(CHILD_KEYS, new Object[] { aoi.getParentRowId(), aoi.getRowId(), aoi.getId(), aoi.getObjectClass() }));
 		}
+		session.execute(batch);
 		
 		if (LOG.isDebugEnabled()) {
 			LOG.debug("END saveAcl");
@@ -263,32 +249,44 @@ public class CassandraAclRepositoryImpl implements CassandraAclRepository {
 		if (persistedAoi == null) {
 			throw new AclNotFoundException("Object identity '" + aoi + "' does not exist");
 		}
-
-		// Update AOI
-		BoundStatement aoiBoundStatement = new BoundStatement(insertAoiStatement);	
-		session.execute(aoiBoundStatement.bind(aoi.getRowId(), aoi.getId(), aoi.getObjectClass(), aoi.isEntriesInheriting(),
-				aoi.getOwnerId(), aoi.isOwnerPrincipal(), aoi.getParentObjectId(), aoi.getParentObjectClass()));
-	
-		// Check if parent is different and update children table
-		if (!(persistedAoi.getParentRowId() == null ? aoi.getParentRowId() == null : persistedAoi.getParentRowId().equals(aoi.getParentRowId()))) {
-			if (persistedAoi.getParentRowId() != null) {
-				QueryBuilder.delete().all().from(KEYSPACE, CHILDREN_TABLE).where(QueryBuilder.eq("id", persistedAoi.getParentRowId())).and(QueryBuilder.eq("childId", aoi.getRowId()));
-			}
-			if (aoi.getParentRowId() != null) {
-				BoundStatement childBoundStatement = new BoundStatement(insertChildStatement);
-				session.execute(childBoundStatement.bind(aoi.getParentRowId(), aoi.getRowId(), aoi.getId(), aoi.getObjectClass()));
-			}
-		}
 		
-		// Update ACLs
-		session.execute(QueryBuilder.delete().all().from(KEYSPACE, ACL_TABLE).where(QueryBuilder.eq("id", aoi.getRowId())));
-		if (entries != null) {
-			for (AclEntry entry : entries) {
-				BoundStatement aclBoundStatement = new BoundStatement(insertAclStatement);
-				session.execute(aclBoundStatement.bind(aoi.getRowId(), entry.getOrder(), entry.getSid(), entry.getMask(), entry.isSidPrincipal(),
-						entry.isGranting(), entry.isAuditSuccess(), entry.isAuditFailure()));
-			}
+		// Update AOI & delete existing ACLs
+		Batch batch = QueryBuilder.batch();
+		batch.add(QueryBuilder.insertInto(KEYSPACE, AOI_TABLE).values(AOI_KEYS, new Object[] { aoi.getRowId(), aoi.getId(), aoi.getObjectClass(), aoi.isEntriesInheriting(),
+				aoi.getOwnerId(), aoi.isOwnerPrincipal(), aoi.getParentObjectId(), aoi.getParentObjectClass() }));
+		batch.add(QueryBuilder.delete().all().from(KEYSPACE, ACL_TABLE).where(QueryBuilder.eq("id", aoi.getRowId())));
+	
+		// Check if parent is different and delete from children table
+		boolean parentChanged = false;
+		if (!(persistedAoi.getParentRowId() == null ? aoi.getParentRowId() == null : persistedAoi.getParentRowId().equals(aoi.getParentRowId()))) {
+			parentChanged = true;
+			
+			if (persistedAoi.getParentRowId() != null) {
+				batch.add(QueryBuilder.delete().all().from(KEYSPACE, CHILDREN_TABLE).where(QueryBuilder.eq("id", persistedAoi.getParentRowId())).and(QueryBuilder.eq("childId", aoi.getRowId())));
+			}			
 		}
+		session.execute(batch);
+		
+		// Update ACLs & children table	
+		batch = QueryBuilder.batch();
+		boolean executeBatch = false;
+		
+		if (entries != null && !entries.isEmpty()) {
+			for (AclEntry entry : entries) {
+				batch.add(QueryBuilder.insertInto(KEYSPACE, ACL_TABLE).values(ACL_KEYS, new Object[] { aoi.getRowId(), entry.getOrder(), entry.getSid(), entry.getMask(), entry.isSidPrincipal(),
+						entry.isGranting(), entry.isAuditSuccess(), entry.isAuditFailure() }));
+			}
+			executeBatch = true;
+		}		
+		if (parentChanged) {
+			if (aoi.getParentRowId() != null) {
+				batch.add(QueryBuilder.insertInto(KEYSPACE, CHILDREN_TABLE).values(CHILD_KEYS, new Object[] { aoi.getParentRowId(), aoi.getRowId(), aoi.getId(), aoi.getObjectClass() }));
+			}
+			executeBatch = true;
+		}
+		if (executeBatch) {
+			session.execute(batch);
+		}		
 
 		if (LOG.isDebugEnabled()) {
 			LOG.debug("END updateAcl");
