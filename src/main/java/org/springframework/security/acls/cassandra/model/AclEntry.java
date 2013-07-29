@@ -54,10 +54,10 @@ public class AclEntry {
 		mask = ace.getPermission().getMask();
 		order = ace.getAcl().getEntries().indexOf(ace);
 		
-		if (ace.getAcl().getOwner() instanceof PrincipalSid) {
+		if (ace.getSid() instanceof PrincipalSid) {
 			sid = ((PrincipalSid) ace.getSid()).getPrincipal();
 			sidPrincipal = true;
-		} else if (ace.getAcl().getOwner() instanceof GrantedAuthoritySid) {
+		} else if (ace.getSid() instanceof GrantedAuthoritySid) {
 			sid = ((GrantedAuthoritySid) ace.getSid()).getGrantedAuthority();
 			sidPrincipal = false;
 		}
