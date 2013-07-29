@@ -108,7 +108,7 @@ public class CassandraAclRepositoryImpl implements CassandraAclRepository {
 			resultMap.put(convertToAclObjectIdentity(row, true), new TreeSet<AclEntry>(new Comparator<AclEntry>() {
 
 				public int compare(AclEntry o1, AclEntry o2) {
-					return Integer.compare(o1.getOrder(), o2.getOrder());
+					return new Integer(o1.getOrder()).compareTo(o2.getOrder());
 				}
 			}));
 		}
