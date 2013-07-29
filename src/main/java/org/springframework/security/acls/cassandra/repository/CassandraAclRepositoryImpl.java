@@ -52,13 +52,14 @@ public class CassandraAclRepositoryImpl implements CassandraAclRepository {
 	private static final String AOI_TABLE = "aois";
 	private static final String CHILDREN_TABLE = "children";
 	private static final String ACL_TABLE = "acls";
-	private static final String REPLICATION_STRATEGY = "SimpleStrategy";
-	private static final int REPLICATION_FACTOR = 3;
 	
 	private static final String[] AOI_KEYS = new String[] { "id", "objId", "objClass", "isInheriting", "owner", "isOwnerPrincipal", "parentObjId", "parentObjClass" };
 	private static final String[] CHILD_KEYS = new String[] { "id", "childId", "objId", "objClass" };
 	private static final String[] ACL_KEYS = new String[] { "id", "aclOrder", "sid", "mask", "isSidPrincipal", "isGranting", "isAuditSuccess", "isAuditFailure" };
 
+	private String replicationStrategy = "SimpleStrategy";
+	private int replicationFactor = 3;
+	
 	private Session session;
 
 	/**
@@ -68,6 +69,28 @@ public class CassandraAclRepositoryImpl implements CassandraAclRepository {
 	 */
 	public CassandraAclRepositoryImpl(Session session) {
 		this.session = session;
+	}
+	
+	/**
+	 * Constructs a new <code>CassandraAclRepositoryImpl</code> and optionally creates 
+	 * the Cassandra keyspace and schema for storing ACLs.
+	 * 
+	 * @param session the <code>Session</code> to use for connectivity with Cassandra.
+	 * @param initSchema whether the keyspace and schema for storing ACLs should be created.
+	 * @param replicationStrategy the replication strategy to use when creating the keyspace.
+	 * @param replicationFactor the replication factor to use when creating the keyspace.
+	 */
+	public CassandraAclRepositoryImpl(Session session, boolean initSchema, String replicationStrategy, int replicationFactor) {
+		this(session);
+		if (initSchema) {
+			this.replicationFactor = replicationFactor;
+			this.replicationStrategy = replicationStrategy;
+			
+			createKeyspace();
+			createAoisTable();
+			createChilrenTable();
+			createAclsTable();
+		}
 	}
 	
 	/**
@@ -407,7 +430,7 @@ public class CassandraAclRepositoryImpl implements CassandraAclRepository {
 	public void createKeyspace() {	
 		try {
 			session.execute("CREATE KEYSPACE " + KEYSPACE 
-					+ " WITH replication " + "= {'class':'" + REPLICATION_STRATEGY + "', 'replication_factor':" + REPLICATION_FACTOR + "};");
+					+ " WITH replication " + "= {'class':'" + replicationStrategy + "', 'replication_factor':" + replicationFactor + "};");
 		} catch (AlreadyExistsException e) {
 			LOG.warn(e);
 		}
