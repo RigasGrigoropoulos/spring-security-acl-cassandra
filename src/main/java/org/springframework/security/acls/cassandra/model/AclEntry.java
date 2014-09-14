@@ -63,8 +63,8 @@ public class AclEntry {
 		}
 		
 		if (ace instanceof AuditableAccessControlEntry) {
-			auditSuccess = ((AuditableAccessControlEntry) ace).isAuditFailure();
-			auditFailure =  ((AuditableAccessControlEntry) ace).isAuditSuccess();
+			auditSuccess = ((AuditableAccessControlEntry) ace).isAuditSuccess();
+			auditFailure =  ((AuditableAccessControlEntry) ace).isAuditFailure();
 		} else {
 			auditSuccess = false;
 			auditFailure = false;
